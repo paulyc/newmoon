@@ -30,6 +30,7 @@
 #include <cassert>
 #include <cmath>
 #include <cstdarg>
+#include <cerrno>
 
 #include "jpl_int.h"
 #include "jpleph.h"

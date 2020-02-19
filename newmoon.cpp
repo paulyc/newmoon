@@ -93,7 +93,7 @@ int run()
         // just find the time when its the minimum
         long double lastmags[2] = {-3.0l};
         size_t lastmag_indx = 0;
-        long double minmag = 3.0l;
+        vec2q_t minmag = {3.0l,0.0l};
         std::chrono::system_clock::time_point mintp = std::chrono::system_clock::now();
         for (int i = 0; i < 29*24*60; ++i) {
             jd += jd_clock::duration(60.0l/jd_clock::SECONDS_PER_JDAY);
@@ -108,14 +108,14 @@ int run()
             lastmags[lastmag_indx % 2] = mag;
             const long double dmag = mag - lastmag;
             //std::cout << "Magnitude " << magphase[0] << " Angle " << magphase[1] << " at date " << t << std::endl;
-            if (mag < minmag && dmag < 0.0l) {
-                minmag = mag;
+            if (mag < minmag[0] && dmag < 0.0l) {
+                minmag = magphase;
                 mintp = t;
-            } else if (mag > 1.0l && minmag < 0.1l && dmag > 0.0l) {
+            } else if (mag > 1.0l && minmag[0] < 0.05l && dmag > 0.0l) {
                 break;
             }
         }
-        std::cout << "minmag (newmoon) " << minmag << " at mintp " << mintp << std::endl;
+        std::cout << "minmag (newmoon) " << minmag[0] << " phase " << minmag[1] << " at mintp " << mintp << std::endl;
         nanosleep(&ts, nullptr);
     }
 
