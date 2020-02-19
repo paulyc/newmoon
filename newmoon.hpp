@@ -147,7 +147,49 @@ struct jd_clock : public std::chrono::steady_clock
   }
 };
 
-vec3q_t normalize(const vec3d_t &v);
+static inline vec2q_t drop_z(const vec3d_t &v) {
+    return {static_cast<long double>(v[0]), static_cast<long double>(v[1])};
+}
+
+static inline long double dotP(const vec2q_t &u, const vec2q_t &v)
+{
+    return u[0] * v[0] + u[1] * v[1];
+}
+
+static inline long double magn(const vec2q_t &u)
+{
+    return sqrtl(dotP(u,u));
+}
+
+static inline long double dotP(const vec3q_t &u, const vec3q_t &v)
+{
+    return u[0] * v[0] + u[1] * v[1] + u[2] * v[2];
+}
+
+static inline long double magn(const vec3q_t &u)
+{
+    return sqrtl(dotP(u,u));
+}
+
+static inline vec2q_t normalize(const vec2q_t &v)
+{
+    const long double mag = magn(v);
+    return {v[0]/mag,v[1]/mag};
+}
+
+static inline vec3q_t normalize(const vec3d_t &v)
+{
+    const long double x = static_cast<long double>(v[0]);
+    const long double y = static_cast<long double>(v[1]);
+    const long double z = static_cast<long double>(v[2]);
+    const long double mag = sqrtl(x*x+y*y);
+    return {x/mag,y/mag,0.0l};
+}
+
+static inline long double arg(const vec2q_t &u, const vec2q_t &v)
+{
+    return acosl(dotP(u,v)/(magn(u) * magn(v)));
+}
 std::ostream& operator<<(std::ostream &os, const std::chrono::system_clock::time_point &rhs);
 std::ostream& operator<<(std::ostream &os, const jd_clock::time_point &rhs);
 
@@ -183,6 +225,11 @@ public:
             vec3d_t position;
             vec3d_t velocity;
         };
+        long double angle(const State &that) {
+            vec2q_t this_normal = normalize(drop_z(position));
+            vec2q_t that_normal = normalize(drop_z(that.position));
+            return arg(this_normal, that_normal);
+        }
         vec2q_t ra_magphase(const State &other) {
             vec2q_t magphase;
             vec3q_t this_normal = normalize(position);

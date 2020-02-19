@@ -48,22 +48,13 @@ std::ostream& operator<<(std::ostream &os, const jd_clock::time_point &rhs)
     return os;
 }
 
-vec3q_t normalize(const vec3d_t &v)
-{
-    const long double x = static_cast<long double>(v[0]);
-    const long double y = static_cast<long double>(v[1]);
-    const long double z = static_cast<long double>(v[2]);
-    const long double mag = sqrtl(x*x+y*y);
-    return {x/mag,y/mag,z};
-}
-
 int run()
 {
     JPLEphems ephems;
 
     char tzbuf[] = "TZ=UTC";
     putenv(tzbuf);
-    tzset();
+    //tzset();
 
     std::chrono::system_clock::time_point t = std::chrono::system_clock::now();
     jd_clock::time_point jd = jd_clock::now();
@@ -90,11 +81,29 @@ int run()
 
     // generate newmoons every ts seconds forever
     for (;;) {
+        std::chrono::system_clock::time_point mintp = std::chrono::system_clock::now();
+        long double minangle = 2*3.14159;
+#if 1
+        for (int i = 0; i < 29*24*60; ++i) {
+            jd += jd_clock::duration(60.0l/jd_clock::SECONDS_PER_JDAY);
+            t += std::chrono::seconds(60);
+            const double jd_now = static_cast<double>(jd_clock::duration(jd.time_since_epoch()).count());
+            JPLEphems::State sm = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Moon);
+            JPLEphems::State ss = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Sun);
+            const long double arg = sm.angle(ss);
+            if (abs(arg) < minangle) {
+                minangle = abs(arg);
+                mintp = t;
+            } else if (abs(arg) > 3.14159/4 && minangle < 3.14159/8) {
+                break;
+            }
+        }
+        std::cout << "minangle (newmoon) " << minangle << " at mintp " << mintp << std::endl;
+#else
         // just find the time when its the minimum
         long double lastmags[2] = {-3.0l};
         size_t lastmag_indx = 0;
         vec2q_t minmag = {3.0l,0.0l};
-        std::chrono::system_clock::time_point mintp = std::chrono::system_clock::now();
         for (int i = 0; i < 29*24*60; ++i) {
             jd += jd_clock::duration(60.0l/jd_clock::SECONDS_PER_JDAY);
             t += std::chrono::seconds(60);
@@ -116,6 +125,8 @@ int run()
             }
         }
         std::cout << "minmag (newmoon) " << minmag[0] << " phase " << minmag[1] << " at mintp " << mintp << std::endl;
+#endif
+
         nanosleep(&ts, nullptr);
     }
 
