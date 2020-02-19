@@ -18,17 +18,10 @@
  * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA  02110-1335, USA.
  */
 
+#include "NewMoon.hpp"
+
 #include <iostream>
 #include <iomanip>
-#include <memory>
-#include <exception>
-#include <chrono>
-#include <ctime>
-#include <array>
-#include <variant>
-
-#include "jpleph.h"
-#include "NewMoon.hpp"
 
 const std::vector<jd_clock::YearDT> jd_clock::DELTA_T_YR = {
     {-500, 17190},
@@ -55,13 +48,6 @@ std::ostream& operator<<(std::ostream &os, const jd_clock::time_point &rhs)
     return os;
 }
 
-struct jpl_eph_data;
-
-typedef double vec3d_t[3];
-typedef vec3d_t pv_t[2];
-typedef std::array<long double, 2> vec2q_t;
-typedef std::array<long double, 3> vec3q_t;
-
 vec3q_t normalize(const vec3d_t &v)
 {
     const long double x = static_cast<long double>(v[0]);
@@ -71,84 +57,9 @@ vec3q_t normalize(const vec3d_t &v)
     return {x/mag,y/mag,z};
 }
 
-class JPLEphems
-{
-    static constexpr size_t MAX_CONSTANTS = 1024;
-
-public:
-    enum Point {
-        Mercury =  1,
-        Venus   =  2,
-        Earth   =  3,
-        Mars    =  4,
-        Jupiter =  5,
-        Saturn  =  6,
-        Uranus  =  7,
-        Neptune =  8,
-        Pluto   =  9,
-        Moon    = 10,
-        Sun     = 11,
-        SolarSystemBarycenter = 12,
-        EarthMoonBarycenter   = 13,
-        Nutations             = 14,
-        Librations            = 15,
-        LunarMantleOmega      = 16,
-        TT_TDB                = 17,
-    };
-
-    struct State
-    {
-        union {
-            double pv[6];
-            vec3d_t position;
-            vec3d_t velocity;
-        };
-        vec2q_t ra_magphase(const State &other) {
-            vec2q_t magphase;
-            vec3q_t this_normal = normalize(position);
-            vec3q_t that_normal = normalize(other.position);
-            vec3q_t sum = {this_normal[0] + that_normal[0], this_normal[1] + that_normal[1], this_normal[2] + that_normal[2]};
-            magphase[0] = sqrtl(sum[0]*sum[0]+sum[1]*sum[1]);
-            magphase[1] = atanl(sum[1] / sum[0]);
-            return magphase;
-        }
-    };
-    JPLEphems() = default;
-    ~JPLEphems()
-    {
-        if (_ephdata != nullptr) {
-            jpl_close_ephemeris(_ephdata);
-            _ephdata = nullptr;
-        }
-    }
-
-    void init(const std::string &filename)
-    {
-        _ephdata = static_cast<jpl_eph_data*>(jpl_init_ephemeris(filename.c_str(), _names, _values));
-        if (_ephdata == nullptr) {
-            throw std::runtime_error(string_format("jpl_init_ephemeris returned code %d", jpl_init_error_code()));
-        }
-    }
-    State get_state(double jdt, Point center, Point ref)
-    {
-        State result;
-        int res = jpl_pleph(_ephdata, jdt, ref, center, result.pv, 0);
-        if (res != 0) {
-            throw std::runtime_error(string_format("jpl_pleph returned code %d", res));
-        }
-        return result;
-    }
-private:
-    char _names[MAX_CONSTANTS][6];
-    double _values[MAX_CONSTANTS];
-    jpl_eph_data *_ephdata;
-};
-
 int run()
 {
-    JPLEphems _de430;
-    JPLEphems _de430t;
-    JPLEphems _de431;
+    JPLEphems ephems;
 
     char tzbuf[] = "TZ=UTC";
     putenv(tzbuf);
@@ -160,12 +71,21 @@ int run()
     std::cout << "hello newmoon " << t << std::endl;
     timespec ts = {5,0}; //5.000000000s
     try {
-        _de430.init("ephem/linux_p1550p2650.430");
-        _de430t.init("ephem/linux_p1550p2650.430t");
-        _de431.init("ephem/lnxm13000p17000.431");
-    } catch (std::exception &ex) {
-        std::cerr << "EXCEPTION: " <<  ex.what() << std::endl;
-        return 1;
+        ephems.init("ephem/lnxm13000p17000.431");
+    } catch (const std::exception &ex0) {
+        try {
+            ephems.init("ephem/linux_p1550p2650.430t");
+        } catch (const std::exception &ex1) {
+            try {
+                ephems.init("ephem/linux_p1550p2650.430");
+            } catch (const std::exception &ex2) {
+                std::cerr << "Couldn't initialize ephems: " <<
+                             ex0.what() << ' ' <<
+                             ex1.what() << ' ' <<
+                             ex2.what() << std::endl;
+                return 1;
+            }
+        }
     }
 
     // generate newmoons every ts seconds forever
@@ -179,8 +99,8 @@ int run()
             jd += jd_clock::duration(60.0l/jd_clock::SECONDS_PER_JDAY);
             t += std::chrono::seconds(60);
             const double jd_now = static_cast<double>(jd_clock::duration(jd.time_since_epoch()).count());
-            JPLEphems::State sm = _de431.get_state(jd_now, JPLEphems::Earth, JPLEphems::Moon);
-            JPLEphems::State ss = _de431.get_state(jd_now, JPLEphems::Sun, JPLEphems::EarthMoonBarycenter);
+            JPLEphems::State sm = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Moon);
+            JPLEphems::State ss = ephems.get_state(jd_now, JPLEphems::Sun, JPLEphems::EarthMoonBarycenter);
             vec2q_t magphase = sm.ra_magphase(ss);
             const long double mag = magphase[0];
             const long double lastmag = lastmags[lastmag_indx % 2];

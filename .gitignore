@@ -32,3 +32,4 @@
 *.app
 newmoon
 ephem
+CMakeLists.txt.user
