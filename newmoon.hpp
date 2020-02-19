@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA  02110-1335, USA.
  */
 
-#ifndef NEWMOON_HPP
-#define NEWMOON_HPP
+#ifndef _GITHUB_PAULYC_NEWMOON_HPP_
+#define _GITHUB_PAULYC_NEWMOON_HPP_
 
 #include <array>
 #include <string>
@@ -224,4 +224,4 @@ private:
     jpl_eph_data *_ephdata;
 };
 
-#endif // NEWMOON_HPP
+#endif // _GITHUB_PAULYC_NEWMOON_HPP_
