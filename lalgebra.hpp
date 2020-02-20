@@ -21,57 +21,76 @@
 #ifndef _PAULYC_LALGEBRA_HPP_
 #define _PAULYC_LALGEBRA_HPP_
 
-#include <array>
 #include <cstdint>
 #include <cmath>
 
-typedef double vec3d_t[3];
+//typedef double vec3d_t[3];
+//typedef std::array<long double, 2> vec2q_t;
+//typedef std::array<long double, 3> vec3q_t;
+
+template <typename T=long double>
+struct vec2
+{
+	T x;
+	T y;
+	long double dotP(const vec2<T> &v) const {
+		return x * v.x + y * v.y;
+	}
+	long double mag() const {
+		return sqrtl(dotP(*this));
+	}
+	long double phase() const {
+		return atanl(y/x);
+	}
+	vec2<T> sum(const vec2<T> &v) const {
+		return {x+v.x, y+v.y};
+	}
+	vec2<long double> normalize() const {
+		const long double mag = this->mag();
+		return {x/mag, y/mag};
+	}
+	vec2<long double> magphase() const {
+		return {this->mag(), this->phase()};
+	}
+	long double angle(const vec2<T> &v) const {
+		return acosl(dotP(v)/(mag() * v.mag()));
+	}
+};
+typedef vec2<double> vec2d_t;
+typedef vec2<long double> vec2q_t;
+
+template <typename T=long double>
+struct vec3
+{
+	T x;
+	T y;
+	T z;
+
+	vec2<T> drop_z() const {
+		return {x, y};
+	}
+	long double dotP(const vec3<T> &v) const {
+		return x * v.x + y * v.y + z * v.z;
+	}
+	long double mag() const {
+		return sqrtl(dotP(*this));
+	}
+	long double phase() const {
+		return atanl(y/x);
+	}
+	vec3<T> normalize() const {
+		const long double mag = this->mag();
+		return {x/mag, y/mag, z/mag};
+	}
+};
+typedef vec3<double> vec3d_t;
+typedef vec3<long double> vec3q_t;
 typedef vec3d_t pv_t[2];
-typedef std::array<long double, 2> vec2q_t;
-typedef std::array<long double, 3> vec3q_t;
 
-static inline vec2q_t drop_z(const vec3d_t &v) {
-    return {static_cast<long double>(v[0]), static_cast<long double>(v[1])};
-}
-
-static inline long double dotP(const vec2q_t &u, const vec2q_t &v)
+template <typename T=long double>
+struct mat3x3
 {
-    return u[0] * v[0] + u[1] * v[1];
-}
-
-static inline long double magn(const vec2q_t &u)
-{
-    return sqrtl(dotP(u,u));
-}
-
-static inline long double dotP(const vec3q_t &u, const vec3q_t &v)
-{
-    return u[0] * v[0] + u[1] * v[1] + u[2] * v[2];
-}
-
-static inline long double magn(const vec3q_t &u)
-{
-    return sqrtl(dotP(u,u));
-}
-
-static inline vec2q_t normalize(const vec2q_t &v)
-{
-    const long double mag = magn(v);
-    return {v[0]/mag,v[1]/mag};
-}
-
-static inline vec3q_t normalize(const vec3d_t &v)
-{
-    const long double x = static_cast<long double>(v[0]);
-    const long double y = static_cast<long double>(v[1]);
-    const long double z = static_cast<long double>(v[2]);
-    const long double mag = sqrtl(x*x+y*y);
-    return {x/mag,y/mag,z};
-}
-
-static inline long double arg(const vec2q_t &u, const vec2q_t &v)
-{
-    return acosl(dotP(u,v)/(magn(u) * magn(v)));
-}
+	T elems[3][3];
+};
 
 #endif /* _PAULYC_LALGEBRA_HPP_ */

@@ -1,3 +1,18 @@
+all: build run
+
+build:
+	mkdir -p build
+	cd build && cmake ..
+	cd build && make
+
+run: build
+	build/newmoon
+.PHONY: run
+
+clean:
+	rm -rf build
+.PHONY: clean
+
 ephem:
 	mkdir -p ephem
 	cd ephem && wget ftp://ssd.jpl.nasa.gov/pub/eph/planets/Linux/de430/linux_p1550p2650.430

@@ -58,19 +58,13 @@ public:
             vec3d_t position;
             vec3d_t velocity;
         };
+
         long double angle(const State &that) {
-            vec2q_t this_normal = normalize(drop_z(position));
-            vec2q_t that_normal = normalize(drop_z(that.position));
-            return arg(this_normal, that_normal);
+			return position.drop_z().normalize().angle(that.position.drop_z().normalize());
+
         }
         vec2q_t ra_magphase(const State &other) {
-            vec2q_t magphase;
-            vec3q_t this_normal = normalize(position);
-            vec3q_t that_normal = normalize(other.position);
-            vec3q_t sum = {this_normal[0] + that_normal[0], this_normal[1] + that_normal[1], this_normal[2] + that_normal[2]};
-            magphase[0] = sqrtl(sum[0]*sum[0]+sum[1]*sum[1]);
-            magphase[1] = atanl(sum[1] / sum[0]);
-            return magphase;
+			return position.drop_z().normalize().sum(other.position.drop_z().normalize()).magphase();
         }
     };
     JPLEphems() : _ephdata(nullptr) {}

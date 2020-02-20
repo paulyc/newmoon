@@ -35,7 +35,8 @@ int run()
     std::chrono::system_clock::time_point t = std::chrono::system_clock::now();
     jd_clock::time_point jd = jd_clock::now();
 
-    std::cout << "hello newmoon " << t << std::endl;
+    std::cout << "hello newmoon " << t << " JD = " << jd << std::endl;
+
     timespec ts = {5,0}; //5.000000000s
     try {
         ephems.init("ephem/lnxm13000p17000.431");
@@ -55,31 +56,33 @@ int run()
         }
     }
 
-    // generate newmoons every ts seconds forever
-    for (;;) {
-        std::chrono::system_clock::time_point mintp = std::chrono::system_clock::now();
+	auto newway = [&ephems, &t, &jd]() {
+		std::chrono::system_clock::time_point mintp = std::chrono::system_clock::now();
         long double minangle = 2*3.14159;
-#if 1
-        for (int i = 0; i < 29*24*60; ++i) {
-            jd += jd_clock::duration(60.0l/jd_clock::SECONDS_PER_JDAY);
-            t += std::chrono::seconds(60);
-            const double jd_now = static_cast<double>(jd_clock::duration(jd.time_since_epoch()).count());
-            JPLEphems::State sm = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Moon);
-            JPLEphems::State ss = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Sun);
-            const long double arg = sm.angle(ss);
-            if (abs(arg) < minangle) {
-                minangle = abs(arg);
-                mintp = t;
-            } else if (abs(arg) > 3.14159/4 && minangle < 3.14159/8) {
-                break;
-            }
-        }
-        std::cout << "minangle (newmoon) " << minangle << " at mintp " << mintp << std::endl;
-#else
-        // just find the time when its the minimum
+		for (int i = 0; i < 29*24*60; ++i) {
+			jd += jd_clock::duration(60.0l/jd_clock::SECONDS_PER_JDAY);
+			t += std::chrono::seconds(60);
+			const double jd_now = static_cast<double>(jd_clock::duration(jd.time_since_epoch()).count());
+			JPLEphems::State sm = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Moon);
+			JPLEphems::State ss = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Sun);
+			const long double arg = sm.angle(ss);
+			if (abs(arg) < minangle) {
+				minangle = abs(arg);
+				mintp = t;
+			} else if (abs(arg) > 3.14159/4 && minangle < 3.14159/8) {
+				break;
+			}
+		}
+		std::cout << "minangle (newmoon) " << minangle << " at mintp " << mintp << std::endl;
+	};
+
+	auto oldway = [&ephems, &t, &jd]() {
+		std::chrono::system_clock::time_point mintp = std::chrono::system_clock::now();
+        long double minangle = 2*3.14159;
+		// just find the time when its the minimum
         long double lastmags[2] = {-3.0l};
         size_t lastmag_indx = 0;
-        vec2q_t minmag = {3.0l,0.0l};
+		long double minmag = 3.0l;
         for (int i = 0; i < 29*24*60; ++i) {
             jd += jd_clock::duration(60.0l/jd_clock::SECONDS_PER_JDAY);
             t += std::chrono::seconds(60);
@@ -87,20 +90,28 @@ int run()
             JPLEphems::State sm = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Moon);
             JPLEphems::State ss = ephems.get_state(jd_now, JPLEphems::Sun, JPLEphems::EarthMoonBarycenter);
             vec2q_t magphase = sm.ra_magphase(ss);
-            const long double mag = magphase[0];
+            const long double mag = magphase.x;
             const long double lastmag = lastmags[lastmag_indx % 2];
             ++lastmag_indx;
             lastmags[lastmag_indx % 2] = mag;
             const long double dmag = mag - lastmag;
             //std::cout << "Magnitude " << magphase[0] << " Angle " << magphase[1] << " at date " << t << std::endl;
-            if (mag < minmag[0] && dmag < 0.0l) {
-                minmag = magphase;
+            if (mag < minmag && dmag < 0.0l) {
+                minmag = mag;
                 mintp = t;
-            } else if (mag > 1.0l && minmag[0] < 0.05l && dmag > 0.0l) {
+            } else if (mag > 1.0l && minmag < 0.05l && dmag > 0.0l) {
                 break;
             }
         }
-        std::cout << "minmag (newmoon) " << minmag[0] << " phase " << minmag[1] << " at mintp " << mintp << std::endl;
+        std::cout << "minmag (newmoon) " << minmag << " at mintp " << mintp << std::endl;
+	};
+
+    // generate newmoons every ts seconds forever
+    for (;;) {
+#if 1
+		newway();
+#else
+		oldway();
 #endif
 
         nanosleep(&ts, nullptr);
