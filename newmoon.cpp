@@ -63,9 +63,10 @@ int run()
 			jd += jd_clock::duration(60.0l/jd_clock::SECONDS_PER_JDAY);
 			t += std::chrono::seconds(60);
 			const double jd_now = static_cast<double>(jd_clock::duration(jd.time_since_epoch()).count());
-			JPLEphems::State sm = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Moon);
-			JPLEphems::State ss = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Sun);
-			const long double arg = sm.angle(ss);
+			JPLEphems::State emvec = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Moon);
+			JPLEphems::State esvec = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Sun);
+
+			const long double arg = emvec.angle(esvec);
 			if (abs(arg) < minangle) {
 				minangle = abs(arg);
 				mintp = t;
@@ -89,8 +90,8 @@ int run()
             const double jd_now = static_cast<double>(jd_clock::duration(jd.time_since_epoch()).count());
             JPLEphems::State sm = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Moon);
             JPLEphems::State ss = ephems.get_state(jd_now, JPLEphems::Sun, JPLEphems::EarthMoonBarycenter);
-            vec2q_t magphase = sm.ra_magphase(ss);
-            const long double mag = magphase.x;
+            const vec2q_t magphase = sm.magphase(ss);
+            const long double mag = magphase.raw[0];
             const long double lastmag = lastmags[lastmag_indx % 2];
             ++lastmag_indx;
             lastmags[lastmag_indx % 2] = mag;

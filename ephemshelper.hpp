@@ -29,7 +29,6 @@
 class JPLEphems
 {
     static constexpr size_t MAX_CONSTANTS = 1024;
-
 public:
     enum Point {
         Mercury =  1,
@@ -59,13 +58,21 @@ public:
             vec3d_t velocity;
         };
 
-        long double angle(const State &that) {
+        long double angle(const State &that) const {
 			return position.drop_z().normalize().angle(that.position.drop_z().normalize());
 
         }
-        vec2q_t ra_magphase(const State &other) {
+        vec2q_t magphase(const State &other) const {
 			return position.drop_z().normalize().sum(other.position.drop_z().normalize()).magphase();
         }
+		vec2q_t ra_dec() const {
+			const long double distance = position.mag();
+			long double ra = position.phase();
+			if (ra < 0.0l) {
+				ra += 2.0l * MMM_PI;
+			}
+			return {ra, asinl(position.raw[1]/distance)};
+		}
     };
     JPLEphems() : _ephdata(nullptr) {}
     ~JPLEphems()
@@ -87,6 +94,9 @@ public:
     State get_state(double jdt, Point center, Point ref)
     {
         State result;
+		if (!initialized()) {
+			throw std::runtime_error("try calling JPLEphems::init() first");
+		}
         int res = jpl_pleph(_ephdata, jdt, ref, center, result.pv, 0);
         if (res != 0) {
             throw std::runtime_error(string_format("jpl_pleph returned code %d", res));
@@ -96,6 +106,9 @@ public:
 	State get_nutations(double jdt)
 	{
 		State result;
+		if (!initialized()) {
+			throw std::runtime_error("try calling JPLEphems::init() first");
+		}
 		int res = jpl_pleph(_ephdata, jdt, Nutations, Earth, result.pv, 0);
 		if (res != 0) {
             throw std::runtime_error(string_format("jpl_pleph returned code %d", res));
