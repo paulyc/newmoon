@@ -37,6 +37,7 @@ struct vec2
 {
 	typedef T TT;
 	T raw[2];
+
 	long double dotP(const vec2<T> &v) const {
 		return raw[0] * v.raw[0] + raw[1] * v.raw[1];
 	}
@@ -158,7 +159,6 @@ struct funmat3x3
 	static constexpr matfun one = [](const TT &t) -> TT { return TT(1.0); };
 	static constexpr matfun sine = [](const TT &θ) -> TT { return sinl(θ); };
 	static constexpr matfun cosine = [](const TT &θ) -> TT { return cosl(θ); };
-	static constexpr auto sincos = [](const TT &θ) -> vec2q_t { return {sinl(θ), cosl(θ)}; }; // premature optimization
 
 	matfun elems[3][3] = {
 		{ident, ident, ident},
@@ -171,7 +171,7 @@ template <typename Vec_T>
 struct coordspace {};
 
 template <typename Mat_T>
-struct matxfrm {};
+struct xfrmmatrix {};
 
 template <typename Vec_T, typename Mat_T>
 struct spacexfrm {};
@@ -218,11 +218,31 @@ struct spherical3dspace : public coordspace<vec3q_t>
 {
 	struct point : public vec3q_t
 	{
-		TT r() const { return this->raw[0]; }
+		TT R() const { return this->raw[0]; }
 		TT θ() const { return this->raw[1]; }
 		TT ø() const { return this->raw[2]; }
 	};
 };
 
+struct spacexfrm3d : public spacexfrm<vec3q_t, mat3x3q_t>
+{
+	spherical3dspace::point operator()(const cartesian3dspace::point &p) {
+		return spherical3dspace::point {p.mag(), atan2l(sqrtl(p.x()*p.x()+p.y()*p.y()), p.z()), atan2l(p.y(), p.x())};
+	}
+	cartesian3dspace::point operator()(const spherical3dspace::point &p) {
+		const long double sin_θ = sinl(p.θ());
+		const long double cos_θ = cosl(p.θ());
+		const long double sin_ø = sinl(p.ø());
+		const long double cos_ø = cosl(p.ø());
+		// https://www.web-formulas.com/Math_Formulas/Linear_Algebra_Transform_from_Cartesian_to_Spherical_Coordinate.aspx
+		mat3x3q_t xfrm = {
+			sin_θ*cos_ø, cos_θ*cos_ø, -sin_ø,
+			sin_θ*sin_ø, cos_θ*sin_ø,  cos_ø,
+			      cos_θ,      -sin_θ,   0.0l,
+		};
+		const vec3q_t q = xfrm.mul(p);
+		return cartesian3dspace::point {q.raw[0], q.raw[1], q.raw[2]};
+	}
+};
 
 #endif /* _PAULYC_LALGEBRA_HPP_ */
