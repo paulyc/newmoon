@@ -1,22 +1,22 @@
-/*
-* ephemshelper.hpp - part of newmoon, moon phase calculator
-*
-* Copyright (C) 2020 Paul Ciarlo <paul.ciarlo@gmail.com>
-*
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License
-* as published by the Free Software Foundation; either version 2
-* of the License, or (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA  02110-1335, USA.
-*/
+/**
+ * part of newmoon, moon phase calculator
+ *
+ * Copyright (C) 2020 Paul Ciarlo <paul.ciarlo@gmail.com>
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA  02110-1335, USA.
+ **/
 
 #ifndef _PAULYC_EPHEMSHELPER_H_
 #define _PAULYC_EPHEMSHELPER_H_
@@ -52,27 +52,13 @@ public:
 
     struct State
     {
-        union {
-            double pv[6];
-            vec3d_t position;
-            vec3d_t velocity;
-        };
-
-        long double angle(const State &that) const {
-			return position.drop_z().normalize().angle(that.position.drop_z().normalize());
-
+        double pv[6];
+        cartesian3dvec position() const {
+            return {pv[0], pv[1], pv[2]};
         }
-        vec2q_t magphase(const State &other) const {
-			return position.drop_z().normalize().sum(other.position.drop_z().normalize()).magphase();
+        cartesian3dvec velocity() const {
+            return {pv[3], pv[4], pv[5]};
         }
-		vec2q_t ra_dec() const {
-			const long double distance = position.mag();
-			long double ra = position.phase();
-			if (ra < 0.0l) {
-				ra += 2.0l * MMM_PI;
-			}
-			return {ra, asinl(position.raw[1]/distance)};
-		}
     };
     JPLEphems() : _ephdata(nullptr) {}
     ~JPLEphems()
@@ -103,12 +89,47 @@ public:
         }
         return result;
     }
+/*
+    OBLIQUITY OF THE ECLIPTIC, NUTATION AND LATITUDES
+    OF THE ARCTIC AND ANTARCTIC CIRCLES
+
+    NUTATION COMPUTED USING THE IAU 2000B SERIES
+
+    CALENDAR DATE = 2020 Febuary 21 Friday (Gregorian)
+    TIME      HMS =  06:30:05 = +0.27089120 day
+    ± Delta T HMS = +00:00:00 = +0.00000000 day
+
+    JD NUMBER FOR DATE, TIME AND GIVEN DELTA T
+    JD = 2458900.77089120 TT
+
+    TIME VARIABLE CORRESPONDING TO JD
+    T = +0.2013900312 = Julian centuries reckoned from J2000.0
+    t = +0.0201390031 = Julian millennia reckoned from J2000.0
+
+    ---------------------------------------------------------------------------
+    OBLIQUITY OF THE ECLIPTIC
+
+    Eps Mean = 23.4366725232°  = 23° 26' 12.021" (Laskar)
+    Nutation = -0.0001406109°  =         -0.506" (IAU 2000B)
+    Eps True = 23.4365319123°  = 23° 26' 11.515"
+
+    ---------------------------------------------------------------------------
+    LATITUDES OF ARCTIC(+) AND ANTARCTIC(−) CIRCLES
+
+    ± 66° 33' 48.485"  =  ± 66.5634680877°
+
+    static long double obliquity_of_ecliptic(double jd2000)
+    {
+        return 23.4393 - 3.563E-7 * jd2000;
+    }
+*/
 	State get_nutations(double jdt)
 	{
 		State result;
 		if (!initialized()) {
 			throw std::runtime_error("try calling JPLEphems::init() first");
 		}
+        // nutation in longitude/obliquity
 		int res = jpl_pleph(_ephdata, jdt, Nutations, Earth, result.pv, 0);
 		if (res != 0) {
             throw std::runtime_error(string_format("jpl_pleph returned code %d", res));

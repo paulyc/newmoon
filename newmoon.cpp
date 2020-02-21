@@ -1,4 +1,4 @@
-/*
+/**
  * newmoon.cpp - part of newmoon, moon phase calculator
  *
  * Copyright (C) 2020 Paul Ciarlo <paul.ciarlo@gmail.com>
@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA  02110-1335, USA.
- */
+ **/
 
 #include "lalgebra.hpp"
 #include "jd_clock.hpp"
@@ -63,10 +63,10 @@ int run()
 			jd += jd_clock::duration(60.0l/jd_clock::SECONDS_PER_JDAY);
 			t += std::chrono::seconds(60);
 			const double jd_now = static_cast<double>(jd_clock::duration(jd.time_since_epoch()).count());
-			JPLEphems::State emvec = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Moon);
-			JPLEphems::State esvec = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Sun);
+			cartesian3dvec moonpos = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Moon).position();
+			cartesian3dvec sunpos = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Sun).position();
 
-			const long double arg = emvec.angle(esvec);
+			const long double arg = moonpos.angle(sunpos);
 			if (abs(arg) < minangle) {
 				minangle = abs(arg);
 				mintp = t;
@@ -88,10 +88,10 @@ int run()
             jd += jd_clock::duration(60.0l/jd_clock::SECONDS_PER_JDAY);
             t += std::chrono::seconds(60);
             const double jd_now = static_cast<double>(jd_clock::duration(jd.time_since_epoch()).count());
-            JPLEphems::State sm = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Moon);
-            JPLEphems::State ss = ephems.get_state(jd_now, JPLEphems::Sun, JPLEphems::EarthMoonBarycenter);
-            const vec2q_t magphase = sm.magphase(ss);
-            const long double mag = magphase.raw[0];
+            const cartesian3dvec sm = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Moon).position();
+            const cartesian3dvec ss = ephems.get_state(jd_now, JPLEphems::Sun, JPLEphems::EarthMoonBarycenter).position();
+            const cartesian3dvec sum = sm.sum(ss);
+            const long double mag = sum.mag();
             const long double lastmag = lastmags[lastmag_indx % 2];
             ++lastmag_indx;
             lastmags[lastmag_indx % 2] = mag;

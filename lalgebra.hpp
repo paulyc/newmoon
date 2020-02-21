@@ -1,22 +1,22 @@
-/*
-* lalgebra.hpp - part of newmoon, moon phase calculator
-*
-* Copyright (C) 2020 Paul Ciarlo <paul.ciarlo@gmail.com>
-*
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License
-* as published by the Free Software Foundation; either version 2
-* of the License, or (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA  02110-1335, USA.
-*/
+/**
+ * part of newmoon, moon phase calculator
+ *
+ * Copyright (C) 2020 Paul Ciarlo <paul.ciarlo@gmail.com>
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA  02110-1335, USA.
+ **/
 
 #ifndef _PAULYC_LALGEBRA_HPP_
 #define _PAULYC_LALGEBRA_HPP_
@@ -26,11 +26,11 @@
 #include <cstdint>
 #include <cmath>
 
-///static constexpr binary128 MMMMMM_PI = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p0;
-static constexpr long double MMM_PI = 0x3.243f6a8885a308d313198a2e03707344p0;
-//typedef double vec3d_t[3];
-//typedef std::array<long double, 2> vec2q_t;
-//typedef std::array<long double, 3> vec3q_t;
+// magic number copied from somewhere(??). Not eligible for copyright protection as a simple statement of fact.
+static constexpr long double MMM_PI    = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p0;
+// might come in handy for solving the QM diffEQs or something idk but it's fun
+static constexpr long double MMM_PI_PI = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p1;
+static constexpr long double MMM_2_PI  = 2.0l * MMM_PI;
 
 template <typename T=long double>
 struct vec2
@@ -38,27 +38,8 @@ struct vec2
 	typedef T TT;
 	T raw[2];
 
-	long double dotP(const vec2<T> &v) const {
+	T dotP(const vec2<T> &v) const {
 		return raw[0] * v.raw[0] + raw[1] * v.raw[1];
-	}
-	long double mag() const {
-		return sqrtl(dotP(*this));
-	}
-	long double phase() const {
-		return atanl(raw[1]/raw[0]);
-	}
-	vec2<T> sum(const vec2<T> &v) const {
-		return {raw[0]+v.raw[0], raw[1]+v.raw[1]};
-	}
-	vec2<long double> normalize() const {
-		const long double mag = this->mag();
-		return {raw[0]/mag, raw[1]/mag};
-	}
-	vec2<long double> magphase() const {
-		return {this->mag(), this->phase()};
-	}
-	long double angle(const vec2<T> &v) const {
-		return acosl(dotP(v)/(mag() * v.mag()));
 	}
 };
 typedef vec2<double> vec2d_t;
@@ -73,21 +54,11 @@ struct vec3
 	vec2<T> drop_z() const {
 		return {raw[0], raw[1]};
 	}
-	long double dotP(const vec3<T> &v) const {
+	T dotP(const vec3<T> &v) const {
 		return raw[0] * v.raw[0] + raw[1] * v.raw[1] + raw[2] * v.raw[2];
 	}
-	long double mag() const {
+	T mag() const {
 		return sqrtl(dotP(*this));
-	}
-	// not really such a thing in spherical coordinates, but there is
-	// if we ignore z and pretend it's cylindrical, which is generally
-	// a Good Enough Approximation(tm) of a planet-star-type orbit
-	long double phase() const {
-		return atan2l(raw[1], raw[0]);
-	}
-	vec3<T> normalize() const {
-		const long double mag = this->mag();
-		return {raw[0]/mag, raw[1]/mag, raw[2]/mag};
 	}
 };
 typedef vec3<double> vec3d_t;
@@ -173,63 +144,128 @@ struct coordspace {};
 template <typename Mat_T>
 struct xfrmmatrix {};
 
-template <typename Vec_T, typename Mat_T>
+template <typename SpaceA_T, typename SpaceB_T, typename TransformationMatrixT=mat3x3q_t>
 struct spacexfrm {};
 
-struct cartesian2dspace : public coordspace<vec2q_t>
+struct cartesian2dvec : public vec2q_t
 {
-	struct point : public vec2q_t
-	{
-		TT x() const { return this->raw[0]; }
-		TT y() const { return this->raw[1]; }
-	};
-};
-
-struct cylindrical2dspace : public coordspace<vec2q_t>
-{
-	struct point : public vec2q_t
-	{
-		TT r() const { return this->raw[0]; }
-		TT θ() const { return this->raw[1]; }
-	};
-};
-
-struct spacexfrm2d : public spacexfrm<vec2q_t, mat3x3q_t>
-{
-	cylindrical2dspace::point operator()(const cartesian2dspace::point &p) {
-		return cylindrical2dspace::point {p.mag(), p.phase()};
+	constexpr TT x() const { return this->raw[0]; }
+	constexpr TT y() const { return this->raw[1]; }
+		TT mag() const {
+		return sqrtl(dotP(*this));
 	}
-	cartesian2dspace::point operator()(const cylindrical2dspace::point &p) {
-		return cartesian2dspace::point {p.r() * cosl(p.θ()), p.r() * sinl(p.θ())};
+	TT phase() const {
+		return atanl(y()/x());
+	}
+	cartesian2dvec sum(const cartesian2dvec &v) const {
+		return {x()+v.x(), y()+v.y()};
+	}
+	cartesian2dvec normalize() const {
+		const TT mag = this->mag();
+		return {x()/mag, y()/mag};
+	}
+	TT angle(const cartesian2dvec &v) const {
+		return acosl(dotP(v)/(mag() * v.mag()));
 	}
 };
 
-struct cartesian3dspace : public coordspace<vec3q_t>
+struct cylindrical2dvec : public vec2q_t
 {
-	struct point : public vec3q_t
-	{
-		TT x() const { return this->raw[0]; }
-		TT y() const { return this->raw[1]; }
-		TT z() const { return this->raw[2]; }
-	};
-};
-
-struct spherical3dspace : public coordspace<vec3q_t>
-{
-	struct point : public vec3q_t
-	{
-		TT R() const { return this->raw[0]; }
-		TT θ() const { return this->raw[1]; }
-		TT ø() const { return this->raw[2]; }
-	};
-};
-
-struct spacexfrm3d : public spacexfrm<vec3q_t, mat3x3q_t>
-{
-	spherical3dspace::point operator()(const cartesian3dspace::point &p) {
-		return spherical3dspace::point {p.mag(), atan2l(sqrtl(p.x()*p.x()+p.y()*p.y()), p.z()), atan2l(p.y(), p.x())};
+	constexpr TT r() const { return this->raw[0]; }
+	constexpr TT θ() const { return this->raw[1]; }
+	constexpr TT mag() const {
+		return r();
 	}
-	cartesian3dspace::point operator()(const spherical3dspace::point &p) {
+	constexpr TT phase() const {
+		return θ();
+	}
+	cylindrical2dvec sum(const cylindrical2dvec &v) const;
+	constexpr vec2q_t normalize() const {
+		return {1.0l, phase()};
+	}
+	TT angle(const cylindrical2dvec &v) const {
+		const TT diff = fmodl(phase() - v.phase(), MMM_2_PI);
+		if (diff < 0.0l) {
+			return diff + MMM_2_PI;
+		} else {
+			return diff;
+		}
+	}
+};
+
+struct spacexfrm2d : public spacexfrm<cartesian2dvec, cylindrical2dvec, mat3x3q_t>
+{
+	static cylindrical2dvec cart2cyl(const cartesian2dvec &p) {
+		return cylindrical2dvec {p.mag(), p.phase()};
+	}
+	static cartesian2dvec cyl2cart(const cylindrical2dvec &p) {
+		return cartesian2dvec {p.r() * cosl(p.θ()), p.r() * sinl(p.θ())};
+	}
+};
+
+cylindrical2dvec cylindrical2dvec::sum(const cylindrical2dvec &v) const
+{
+	return spacexfrm2d::cart2cyl(spacexfrm2d::cyl2cart(*this).sum(spacexfrm2d::cyl2cart(v)));
+}
+
+struct cartesian3dvec : public vec3q_t
+{
+	constexpr TT x() const { return this->raw[0]; }
+	constexpr TT y() const { return this->raw[1]; }
+	constexpr TT z() const { return this->raw[2]; }
+	TT mag() const {
+		return sqrtl(dotP(*this));
+	}
+	TT phase() const {
+		return atanl(y()/x());
+	}
+	cartesian3dvec sum(const cartesian3dvec &v) const {
+		return {x()+v.x(), y()+v.y(), z()+v.z()};
+	}
+	cartesian3dvec normalize() const {
+		const TT mag = this->mag();
+		return {x()/mag, y()/mag, z()/mag};
+	}
+	TT angle(const cartesian3dvec &v) const {
+		return acosl(dotP(v)/(mag() * v.mag()));
+	}
+};
+
+struct spherical3dvec : public vec3q_t
+{
+	constexpr TT r() const { return this->raw[0]; }
+	constexpr TT θ() const { return this->raw[1]; }
+	constexpr TT ø() const { return this->raw[2]; }
+	constexpr TT mag() const {
+		return r();
+	}
+	//spherical3dvec sum(const spherical3dvec &v) const;
+	constexpr vec3q_t normalize() const {
+		return {1.0l, θ(), ø()};
+	}
+	// not really such a thing in spherical coordinates, but there is
+	// if we ignore z and pretend it's cylindrical, which is generally
+	// a Good Enough Approximation(tm) of a planet-star-type orbit
+	constexpr TT phase() const {
+		return θ();
+	}
+	// ignoring ø for now keep it simple see above
+	TT angle(const spherical3dvec &v) const {
+		const TT diff = fmodl(phase() - v.phase(), MMM_2_PI);
+		if (diff < 0.0l) {
+			return diff + MMM_2_PI;
+		} else {
+			return diff;
+		}
+	}
+};
+
+struct spacexfrm3d : public spacexfrm<cartesian3dvec, spherical3dvec, mat3x3q_t>
+{
+	static spherical3dvec cart2sph(const cartesian3dvec &p) {
+		return spherical3dvec {p.mag(), atan2l(sqrtl(p.x()*p.x()+p.y()*p.y()), p.z()), atan2l(p.y(), p.x())};
+	}
+	static cartesian3dvec sph2cart(const spherical3dvec &p) {
 		const long double sin_θ = sinl(p.θ());
 		const long double cos_θ = cosl(p.θ());
 		const long double sin_ø = sinl(p.ø());
@@ -241,7 +277,7 @@ struct spacexfrm3d : public spacexfrm<vec3q_t, mat3x3q_t>
 			      cos_θ,      -sin_θ,   0.0l,
 		};
 		const vec3q_t q = xfrm.mul(p);
-		return cartesian3dspace::point {q.raw[0], q.raw[1], q.raw[2]};
+		return cartesian3dvec {q.raw[0], q.raw[1], q.raw[2]};
 	}
 };
 
