@@ -28,8 +28,9 @@
 
 // magic number copied from somewhere(??). Not eligible for copyright protection as a simple statement of fact.
 // this is really a binary256 but who tf knows how many bits you'll ever get in a long double anyway,
-// it gets truncated to 80 bits on some i386/amd64 platforms, who knows, maybe some will whole-ass it with all 256,
-// or make a long long double later.
+// it gets truncated to 80 bits on some i386/amd64 platforms, which makes it something of a short long double since
+// the chip does all double FP in 80-bit anyway and rounds it back off to 64.
+// who knows, maybe some will whole-ass it with all 256, or make a long long double later.
 static constexpr long double MMM_PI    = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p0;
 // might come in handy for solving the QM diffEQs or something idk but it's fun
 static constexpr long double MMM_PI_PI = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p1;
