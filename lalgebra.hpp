@@ -131,11 +131,41 @@ struct funmat3x3
 	static constexpr matfun sine = [](const TT &θ) -> TT { return sinl(θ); };
 	static constexpr matfun cosine = [](const TT &θ) -> TT { return cosl(θ); };
 
-	matfun elems[3][3] = {
-		{ident, ident, ident},
-		{ident, ident, ident},
-		{ident, ident, ident},
+	static constexpr matfun identitymatrix[3][3] = {
+		{ident,  zero,  zero},
+		{ zero, ident,  zero},
+		{ zero,  zero, ident},
 	};
+
+	static constexpr matfun R_1_mtrx[3][3] ={
+		{1.0l,   0.0l,   0.0l},
+		{0.0l, cosine,   sine},
+		{0.0l,  -sine, cosine},
+	};
+	static constexpr matfun R_2_mtrx[3][3] = {
+		{cosine, 0.0l,  -sine},
+		{  0.0l, 1.0l,   0.0l},
+		{  sine, 0.0l, cosine},
+	};
+	static constexpr matfun R_3_mtrx[3][3] = {
+		{cosine,   sine, 0.0l},
+		{ -sine, cosine, 0.0l},
+		{  0.0l,   0.0l, 1.0l},
+	};
+
+	matfun xfrmmtrx[3][3] = identitymatrix;
+
+	void setxfrmmtrx(matfun newmtrx[3][3]) {
+		xfrmmtrx = newmtrx;
+	}
+
+	vec3q_t mul(const vec3q_t &v) const {
+		return {
+			xfrmmtrx[0][0](v.raw[0]) + xfrmmtrx[0][1](v.raw[1]) + xfrmmtrx[0][2](v.raw[2]),
+			xfrmmtrx[1][0](v.raw[0]) + xfrmmtrx[1][1](v.raw[1]) + xfrmmtrx[1][2](v.raw[2]),
+			xfrmmtrx[2][0](v.raw[0]) + xfrmmtrx[2][1](v.raw[1]) + xfrmmtrx[2][2](v.raw[2]),
+		};
+	}
 };
 
 template <typename Vec_T>
