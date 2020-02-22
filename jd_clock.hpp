@@ -28,6 +28,7 @@
 #include <cassert>
 #include <ctime>
 #include <iomanip>
+#include <cstring>
 
 struct jd_clock : public std::chrono::steady_clock
 {

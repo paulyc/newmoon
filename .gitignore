@@ -30,11 +30,7 @@
 *.exe
 *.out
 *.app
-newmoon
-ephem
-CMakeLists.txt.user
-CMakeCache.txt
-CMakeFiles
-cmake_install.cmake
+
 xcodebuild
 build
+ephem

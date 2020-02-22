@@ -67,10 +67,11 @@ int run()
 			cartesian3dvec sunpos = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Sun).position();
 
 			const long double arg = moonpos.angle(sunpos);
-			if (abs(arg) < minangle) {
-				minangle = abs(arg);
+			const long double argabs = fabsl(arg);
+			if (argabs < minangle) {
+				minangle = argabs;
 				mintp = t;
-			} else if (abs(arg) > 3.14159/4 && minangle < 3.14159/8) {
+			} else if (argabs > 3.14159/4 && minangle < 3.14159/8) {
 				break;
 			}
 		}
