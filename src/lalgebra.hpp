@@ -36,6 +36,46 @@ static constexpr long double MMM_PI    = 0x3.243f6a8885a308d313198a2e03707344a40
 static constexpr long double MMM_PI_PI = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p1;
 static constexpr long double MMM_2_PI  = 2.0l * MMM_PI;
 
+template <std::size_t N, typename T>
+struct Nvec
+{
+	typedef Nvec<N, T> ThisT;
+	typedef T PrimT;
+	typedef PrimT PrimArrayT[N];
+	PrimArrayT raw;
+
+	constexpr T dotP(const Nvec<N, T> &that) const {
+		T product;
+		for (std::size_t i = 0; i < N; ++i) {
+			product += this->raw[i] * that.raw[i];
+		}
+		return product;
+	}
+};
+
+template <typename T>
+struct Nvec<0,T> {
+	constexpr T dotP(const Nvec<0, T> &that) const {
+		return T(0.0l);
+	}
+};
+
+typedef Nvec<0, long double> v0q_t;
+typedef Nvec<1, long double> v1q_t;
+typedef Nvec<2, long double> v2q_t;
+typedef Nvec<3, long double> v3q_t;
+
+template <typename T>
+static const Nvec<0, T> TheZeroVector;
+
+template <std::size_t N, std::size_t M, typename T=long double>
+struct NxMmatrix
+{
+	typedef T TT;
+	typedef Nvec<N, T> RowT;
+	typedef Nvec<M, RowT> ColT;
+
+};
 template <typename T=long double>
 struct vec2
 {
@@ -73,6 +113,14 @@ struct mat3x3
 {
 	typedef T TT;
 	T elems[3][3];
+
+	constexpr mat3x3() {
+		for (std::size_t i = 0; i < 3; ++i) {
+			for (std::size_t j = 0; i < 3; ++j) {
+				elems[i][j] = T(0.0l);
+			}
+		}
+	}
 
 	constexpr mat3x3(const T (&m)[3][3]) {
 		for (std::size_t i = 0; i < 3; ++i) {
@@ -358,6 +406,15 @@ struct funmat3x3 : public funmat<VecT, T>
 			xfrmmtrx.elems[0][0](v, 0, 0) * v.raw[0] + xfrmmtrx.elems[0][1](v, 0, 1) * v.raw[1] + xfrmmtrx.elems[0][2](v, 0, 2) * v.raw[2],
 			xfrmmtrx.elems[1][0](v, 1, 0) * v.raw[0] + xfrmmtrx.elems[1][1](v, 1, 1) * v.raw[1] + xfrmmtrx.elems[1][2](v, 1, 2) * v.raw[2],
 			xfrmmtrx.elems[2][0](v, 2, 0) * v.raw[0] + xfrmmtrx.elems[2][1](v, 2, 1) * v.raw[1] + xfrmmtrx.elems[2][2](v, 2, 2) * v.raw[2],
+		};
+	}
+
+	XfrmMatrixT mul(const XfrmMatrixT &m) const {
+		XfrmMatrixT product;
+		//product[0][0] = [](const VecT &v, int r, int c) -> T { return xfrmmtrx.elems[r][c](v,r,c) * m.elems[0][0](v,r,c); };
+
+		return {
+			//[](const VecT &v, int r, int c) -> T { return xfrmmtrx.elems[0][0](v,r,c) * m.elems[0][0](v,r,c); };
 		};
 	}
 };
