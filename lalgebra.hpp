@@ -74,6 +74,29 @@ struct mat3x3
 	typedef T TT;
 	T elems[3][3];
 
+	constexpr mat3x3(const T (&m)[3][3]) {
+		for (std::size_t i = 0; i < 3; ++i) {
+			for (std::size_t j = 0; i < 3; ++j) {
+				elems[i][j] = m[i][j];
+			}
+		}
+	}
+	constexpr mat3x3(const mat3x3<T> &that) {
+		for (std::size_t i = 0; i < 3; ++i) {
+			for (std::size_t j = 0; i < 3; ++j) {
+				this->elems[i][j] = that.elems[i][j];
+			}
+		}
+	}
+	constexpr mat3x3& operator=(const mat3x3 &that) {
+		for (std::size_t i = 0; i < 3; ++i) {
+			for (std::size_t j = 0; i < 3; ++j) {
+				this->elems[i][j] = that.elems[i][j];
+			}
+		}
+		return *this;
+	}
+
 	// https://gssc.esa.int/navipedia/index.php/Transformation_between_Terrestrial_Frames
 	// ????
 	vec3q_t mul(const vec3q_t &v) const {
@@ -123,54 +146,6 @@ struct mat3x3
 };
 
 typedef mat3x3<long double> mat3x3q_t;
-
-template <typename T=long double>
-struct funmat3x3
-{
-	typedef T TT;
-	typedef std::function<TT(TT)> matfun;
-	static constexpr matfun ident = [](const TT &t) -> TT { return t; };
-	static constexpr matfun zero = [](const TT &t) -> TT { return TT(0.0); };
-	static constexpr matfun one = [](const TT &t) -> TT { return TT(1.0); };
-	static constexpr matfun sine = [](const TT &θ) -> TT { return sinl(θ); };
-	static constexpr matfun cosine = [](const TT &θ) -> TT { return cosl(θ); };
-
-	static constexpr matfun identitymatrix[3][3] = {
-		{ident,  zero,  zero},
-		{ zero, ident,  zero},
-		{ zero,  zero, ident},
-	};
-
-	static constexpr matfun R_1_mtrx[3][3] ={
-		{1.0l,   0.0l,   0.0l},
-		{0.0l, cosine,   sine},
-		{0.0l,  -sine, cosine},
-	};
-	static constexpr matfun R_2_mtrx[3][3] = {
-		{cosine, 0.0l,  -sine},
-		{  0.0l, 1.0l,   0.0l},
-		{  sine, 0.0l, cosine},
-	};
-	static constexpr matfun R_3_mtrx[3][3] = {
-		{cosine,   sine, 0.0l},
-		{ -sine, cosine, 0.0l},
-		{  0.0l,   0.0l, 1.0l},
-	};
-
-	matfun xfrmmtrx[3][3] = identitymatrix;
-
-	void setxfrmmtrx(matfun newmtrx[3][3]) {
-		xfrmmtrx = newmtrx;
-	}
-
-	vec3q_t mul(const vec3q_t &v) const {
-		return {
-			xfrmmtrx[0][0](v.raw[0]) + xfrmmtrx[0][1](v.raw[1]) + xfrmmtrx[0][2](v.raw[2]),
-			xfrmmtrx[1][0](v.raw[0]) + xfrmmtrx[1][1](v.raw[1]) + xfrmmtrx[1][2](v.raw[2]),
-			xfrmmtrx[2][0](v.raw[0]) + xfrmmtrx[2][1](v.raw[1]) + xfrmmtrx[2][2](v.raw[2]),
-		};
-	}
-};
 
 template <typename Vec_T>
 struct coordspace {};
@@ -305,14 +280,100 @@ struct spacexfrm3d : public spacexfrm<cartesian3dvec, spherical3dvec, mat3x3q_t>
 		const long double sin_ø = sinl(p.ø());
 		const long double cos_ø = cosl(p.ø());
 		// https://www.web-formulas.com/Math_Formulas/Linear_Algebra_Transform_from_Cartesian_to_Spherical_Coordinate.aspx
-		mat3x3q_t xfrm = {
-			sin_θ*cos_ø, cos_θ*cos_ø, -sin_ø,
-			sin_θ*sin_ø, cos_θ*sin_ø,  cos_ø,
-			      cos_θ,      -sin_θ,   0.0l,
+		const long double m[3][3] = {
+			{sin_θ*cos_ø, cos_θ*cos_ø, -sin_ø,},
+			{sin_θ*sin_ø, cos_θ*sin_ø,  cos_ø,},
+			{      cos_θ,      -sin_θ,   0.0l,},
 		};
+		mat3x3q_t xfrm(m);
 		const vec3q_t q = xfrm.mul(p);
 		return cartesian3dvec {q.raw[0], q.raw[1], q.raw[2]};
 	}
+};
+
+template <typename VecT, typename T=long double>
+struct funmat3x3
+{
+	typedef T TT;
+	typedef VecT VecTT;
+	typedef std::function<TT()> fixed;
+	typedef std::function<TT(TT)> multiplier;
+	typedef std::function<multiplier()> multiplier_rank0;
+	typedef std::function<multiplier(TT)> multiplier_rank1;
+	typedef std::function<multiplier(TT,TT)> multiplier_rank2;
+
+	static constexpr multiplier ident = [](TT val) -> TT { return val; };
+	static constexpr multiplier zero = [](TT) -> TT { return TT(0.0); };
+	static constexpr multiplier one = [](TT) -> TT { return TT(1.0); };
+	static constexpr multiplier sine = [](TT val) -> TT { return sinl(val); };
+	static constexpr multiplier cosine = [](TT val) -> TT { return cosl(val); };
+
+	static constexpr multiplier_rank0 ident_rank0 = []() -> multiplier { return ident; };
+	static constexpr multiplier_rank0 zero_rank0 = []() -> multiplier { return zero; };
+	static constexpr multiplier_rank0 one_rank0 = []() -> multiplier { return one; };
+	static constexpr multiplier_rank1 sine_rank0 = []() -> multiplier { return sine; };
+	static constexpr multiplier_rank1 cosine_rank0 = []() -> multiplier { return cosine; };
+
+	static constexpr multiplier_rank1 sine_rank1 = [](TT θ) -> multiplier {
+		const auto sinfun = std::bind(sine, θ);
+		return [&sinfun](TT val) { return sinfun * val; };
+	};
+
+	static constexpr multiplier_rank1 cosine_rank1 = [](TT θ) -> multiplier {
+		const auto cosfun = std::bind(cosine, θ);
+		return [&cosfun](TT val) { return cosfun * val; };
+	};
+
+	static constexpr multiplier identitymatrix[3][3] = {
+		{ ident,  zero,  zero },
+		{  zero, ident,  zero },
+		{  zero,  zero, ident },
+	};
+/*
+	static constexpr auto R_1_mtrx[3][3] ={
+		{one,   zero,   zero},
+		{zero, cosine,   sine},
+		{zero,  -sine, cosine},
+	};
+	static constexpr auto R_2_mtrx[3][3] = {
+		{cosine, 0.0l,  -sine},
+		{  0.0l, 1.0l,   0.0l},
+		{  sine, 0.0l, cosine},
+	};
+	static constexpr auto R_3_mtrx[3][3] = {
+		{cosine,   sine, 0.0l},
+		{ -sine, cosine, 0.0l},
+		{  0.0l,   0.0l, 1.0l},
+	};
+*/
+	mat3x3q_t xfrmmtrx = identitymatrix;
+
+	void setxfrmmtrx(const mat3x3q_t &mtrx) {
+		xfrmmtrx = mtrx;
+	}
+
+	// rank zero components
+	VecTT mul(const VecTT &v) const {
+		using namespace std::placeholders;
+		return {
+			xfrmmtrx.elems[0][0](v.raw[0]) + xfrmmtrx.elems[0][1](v.raw[1]) + xfrmmtrx.elems[0][2](v.raw[2]),
+			xfrmmtrx.elems[1][0](v.raw[0]) + xfrmmtrx.elems[1][1](v.raw[1]) + xfrmmtrx.elems[1][2](v.raw[2]),
+			xfrmmtrx.elems[2][0](v.raw[0]) + xfrmmtrx.elems[2][1](v.raw[1]) + xfrmmtrx.elems[2][2](v.raw[2]),
+		};
+	}
+};
+
+template <>
+struct funmat3x3<spherical3dvec, long double>
+{
+	typedef long double TT;
+	typedef std::function<TT(const spherical3dvec&, std::size_t)> matfun;
+
+	static constexpr auto sinecosine = [](){};
+	static constexpr auto cosinecosine = [](){};
+	static constexpr auto sinesine = [](){};
+	static constexpr auto cosinesine = [](){};
+
 };
 
 #endif /* _PAULYC_LALGEBRA_HPP_ */
