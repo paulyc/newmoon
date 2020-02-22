@@ -5,15 +5,6 @@ set(CMAKE_C_COMPILER clang)
 set(CMAKE_CXX_COMPILER clang++)
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(newmoon
-	newmoon.cpp
-	newmoon.hpp
-	get_bin.h
-	jpleph.cpp
-	jpleph.h
-	jpl_int.h
-	jd_clock.hpp
-	jd_clock.cpp
-	lalgebra.hpp 
-	ephemshelper.hpp
-)
+add_subdirectory(extern)
+add_subdirectory(src)
+add_subdirectory(test)

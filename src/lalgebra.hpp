@@ -292,43 +292,35 @@ struct spacexfrm3d : public spacexfrm<cartesian3dvec, spherical3dvec, mat3x3q_t>
 };
 
 template <typename VecT, typename T=long double>
-struct funmat3x3
+struct funmat {};
+
+template <typename VecT, typename T=long double>
+struct funmat3x3 : public funmat<VecT, T>
 {
 	typedef T TT;
 	typedef VecT VecTT;
-	typedef std::function<TT()> fixed;
-	typedef std::function<TT(TT)> multiplier;
-	typedef std::function<multiplier()> multiplier_rank0;
-	typedef std::function<multiplier(TT)> multiplier_rank1;
-	typedef std::function<multiplier(TT,TT)> multiplier_rank2;
+	typedef mat3x3q_t XfrmMatrixT;
+	typedef std::function<T(const VecTT&, int, int)> coeffun;
 
-	static constexpr multiplier ident = [](TT val) -> TT { return val; };
-	static constexpr multiplier zero = [](TT) -> TT { return TT(0.0); };
-	static constexpr multiplier one = [](TT) -> TT { return TT(1.0); };
-	static constexpr multiplier sine = [](TT val) -> TT { return sinl(val); };
-	static constexpr multiplier cosine = [](TT val) -> TT { return cosl(val); };
+	static constexpr coeffun ident = [](const VecTT &v, int r, int c) -> T { return r == c ? v.raw[r] : T(0.0); };
+	static constexpr coeffun zero = [](const VecT &v, int r, int c) -> T { return T(0.0); };
+	static constexpr coeffun one = [](const VecT &v, int r, int c) -> T { return T(1.0); };
+	static constexpr coeffun sine = [](const VecT &v, int r, int c) -> T { return r == c ? sinl(v.raw[r]) : T(0.0); };
+	static constexpr coeffun cosine = [](const VecT &v, int r, int c) -> T { return r == c ? cosl(v.raw[r]) : T(0.0); };
 
-	static constexpr multiplier_rank0 ident_rank0 = []() -> multiplier { return ident; };
-	static constexpr multiplier_rank0 zero_rank0 = []() -> multiplier { return zero; };
-	static constexpr multiplier_rank0 one_rank0 = []() -> multiplier { return one; };
-	static constexpr multiplier_rank1 sine_rank0 = []() -> multiplier { return sine; };
-	static constexpr multiplier_rank1 cosine_rank0 = []() -> multiplier { return cosine; };
+	static constexpr coeffun sin_θ = [](const spherical3dvec&v, int, int) -> TT { return sinl(v.θ()); };
+	static constexpr coeffun cos_θ = [](const spherical3dvec&v, int, int) -> TT { return cosl(v.θ()); };
+	static constexpr coeffun sinecosine = [](const spherical3dvec&, int, int) -> TT { return 0.0l; };
+	static constexpr coeffun cosinecosine = [](const spherical3dvec&, int, int) -> TT { return 0.0l; };
+	static constexpr coeffun sinesine = [](const spherical3dvec&, int, int) -> TT { return 0.0l; };
+	static constexpr coeffun cosinesine = [](const spherical3dvec&, int, int) -> TT { return 0.0l; };
 
-	static constexpr multiplier_rank1 sine_rank1 = [](TT θ) -> multiplier {
-		const auto sinfun = std::bind(sine, θ);
-		return [&sinfun](TT val) { return sinfun * val; };
+	static constexpr XfrmMatrixT identitymatrix = {
+		{  one, zero, zero },
+		{ zero,  one, zero },
+		{ zero, zero,  one },
 	};
 
-	static constexpr multiplier_rank1 cosine_rank1 = [](TT θ) -> multiplier {
-		const auto cosfun = std::bind(cosine, θ);
-		return [&cosfun](TT val) { return cosfun * val; };
-	};
-
-	static constexpr multiplier identitymatrix[3][3] = {
-		{ ident,  zero,  zero },
-		{  zero, ident,  zero },
-		{  zero,  zero, ident },
-	};
 /*
 	static constexpr auto R_1_mtrx[3][3] ={
 		{one,   zero,   zero},
@@ -346,34 +338,19 @@ struct funmat3x3
 		{  0.0l,   0.0l, 1.0l},
 	};
 */
-	mat3x3q_t xfrmmtrx = identitymatrix;
+	XfrmMatrixT xfrmmtrx = identitymatrix;
 
-	void setxfrmmtrx(const mat3x3q_t &mtrx) {
+	void setxfrmmtrx(const XfrmMatrixT &mtrx) {
 		xfrmmtrx = mtrx;
 	}
 
-	// rank zero components
-	VecTT mul(const VecTT &v) const {
-		using namespace std::placeholders;
+	VecT mul(const VecT &v) const {
 		return {
-			xfrmmtrx.elems[0][0](v.raw[0]) + xfrmmtrx.elems[0][1](v.raw[1]) + xfrmmtrx.elems[0][2](v.raw[2]),
-			xfrmmtrx.elems[1][0](v.raw[0]) + xfrmmtrx.elems[1][1](v.raw[1]) + xfrmmtrx.elems[1][2](v.raw[2]),
-			xfrmmtrx.elems[2][0](v.raw[0]) + xfrmmtrx.elems[2][1](v.raw[1]) + xfrmmtrx.elems[2][2](v.raw[2]),
+			xfrmmtrx.elems[0][0](v, 0, 0) * v.raw[0] + xfrmmtrx.elems[0][1](v, 0, 1) * v.raw[1] + xfrmmtrx.elems[0][2](v, 0, 2) * v.raw[2],
+			xfrmmtrx.elems[1][0](v, 1, 0) * v.raw[0] + xfrmmtrx.elems[1][1](v, 1, 1) * v.raw[1] + xfrmmtrx.elems[1][2](v, 1, 2) * v.raw[2],
+			xfrmmtrx.elems[2][0](v, 2, 0) * v.raw[0] + xfrmmtrx.elems[2][1](v, 2, 1) * v.raw[1] + xfrmmtrx.elems[2][2](v, 2, 2) * v.raw[2],
 		};
 	}
-};
-
-template <>
-struct funmat3x3<spherical3dvec, long double>
-{
-	typedef long double TT;
-	typedef std::function<TT(const spherical3dvec&, std::size_t)> matfun;
-
-	static constexpr auto sinecosine = [](){};
-	static constexpr auto cosinecosine = [](){};
-	static constexpr auto sinesine = [](){};
-	static constexpr auto cosinesine = [](){};
-
 };
 
 #endif /* _PAULYC_LALGEBRA_HPP_ */
