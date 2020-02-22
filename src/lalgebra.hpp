@@ -308,12 +308,14 @@ struct funmat3x3 : public funmat<VecT, T>
 	static constexpr coeffun sine = [](const VecT &v, int r, int c) -> T { return r == c ? sinl(v.raw[r]) : T(0.0); };
 	static constexpr coeffun cosine = [](const VecT &v, int r, int c) -> T { return r == c ? cosl(v.raw[r]) : T(0.0); };
 
-	static constexpr coeffun sin_θ = [](const spherical3dvec&v, int, int) -> TT { return sinl(v.θ()); };
-	static constexpr coeffun cos_θ = [](const spherical3dvec&v, int, int) -> TT { return cosl(v.θ()); };
-	static constexpr coeffun sinecosine = [](const spherical3dvec&, int, int) -> TT { return 0.0l; };
-	static constexpr coeffun cosinecosine = [](const spherical3dvec&, int, int) -> TT { return 0.0l; };
-	static constexpr coeffun sinesine = [](const spherical3dvec&, int, int) -> TT { return 0.0l; };
-	static constexpr coeffun cosinesine = [](const spherical3dvec&, int, int) -> TT { return 0.0l; };
+	static constexpr coeffun sinθ = [](const spherical3dvec&v, int, int) -> TT { return sinl(v.θ()); };
+	static constexpr coeffun sinø = [](const spherical3dvec&v, int, int) -> TT { return sinl(v.ø()); };
+	static constexpr coeffun cosθ = [](const spherical3dvec&v, int, int) -> TT { return cosl(v.θ()); };
+	static constexpr coeffun cosø = [](const spherical3dvec&v, int, int) -> TT { return cosl(v.ø()); };
+	static constexpr coeffun sinθcosø = [](const spherical3dvec&v, int, int) -> TT { return sinl(v.θ()) * cosl(v.ø()); };
+	static constexpr coeffun cosθcosø = [](const spherical3dvec&v, int, int) -> TT { return cosl(v.θ()) * cosl(v.ø()); };
+	static constexpr coeffun sinθsinø = [](const spherical3dvec&v, int, int) -> TT { return sinl(v.θ()) * sinl(v.ø()); };
+	static constexpr coeffun cosθsinø = [](const spherical3dvec&v, int, int) -> TT { return cosl(v.θ()) * sinl(v.ø()); };
 
 	static constexpr XfrmMatrixT identitymatrix = {
 		{  one, zero, zero },
@@ -321,23 +323,30 @@ struct funmat3x3 : public funmat<VecT, T>
 		{ zero, zero,  one },
 	};
 
-/*
-	static constexpr auto R_1_mtrx[3][3] ={
-		{one,   zero,   zero},
-		{zero, cosine,   sine},
-		{zero,  -sine, cosine},
+	static constexpr XfrmMatrixT R_1_mtrx ={
+		{  one,  zero, zero },
+		{ zero,  cosθ, sinθ },
+		{ zero, -sinθ, cosθ },
 	};
-	static constexpr auto R_2_mtrx[3][3] = {
-		{cosine, 0.0l,  -sine},
-		{  0.0l, 1.0l,   0.0l},
-		{  sine, 0.0l, cosine},
+
+	static constexpr XfrmMatrixT R_2_mtrx = {
+		{ cosθ, zero, -sinθ },
+		{ zero,  one,  zero },
+		{ sinθ, zero,  cosθ },
 	};
-	static constexpr auto R_3_mtrx[3][3] = {
-		{cosine,   sine, 0.0l},
-		{ -sine, cosine, 0.0l},
-		{  0.0l,   0.0l, 1.0l},
+
+	static constexpr XfrmMatrixT R_3_mtrx = {
+		{  cosθ, sinθ, zero },
+		{ -sinθ, cosθ, zero },
+		{  zero, zero,  one },
 	};
-*/
+
+	static constexpr XfrmMatrixT sph2cart_mtrx = {
+		{ sinθcosø, cosθcosø, -sinø },
+		{ sinθsinø, cosθsinø,  cosø },
+		{     cosθ,    -sinθ,  zero },
+	};
+
 	XfrmMatrixT xfrmmtrx = identitymatrix;
 
 	void setxfrmmtrx(const XfrmMatrixT &mtrx) {
