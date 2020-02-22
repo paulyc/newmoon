@@ -42,12 +42,54 @@ struct Nvec
 	typedef Nvec<N, T> ThisT;
 	typedef T PrimT;
 	typedef PrimT PrimArrayT[N];
-	PrimArrayT raw;
+	PrimArrayT data;
 
-	constexpr T dotP(const Nvec<N, T> &that) const {
+	constexpr Nvec() {
+		for (std::size_t i = 0; i < N; ++i) {
+			data[i] = T(0.0l);
+		}
+	}
+	constexpr Nvec(T initval) {
+		for (std::size_t i = 0; i < N; ++i) {
+			data[i] = initval;
+		}
+	}
+
+	PrimT& operator[](std::size_t i) {
+		if (i < N) {
+			return data[i];
+		} else {
+			throw std::range_error("OOR");
+		}
+	}
+
+	constexpr Nvec operator+(const Nvec &that) const {
+		Nvec sum;
+		for (std::size_t i = 0; i < N; ++i) {
+			sum[i] = (*this)[i] + that[i];
+		}
+		return sum;
+	}
+
+	Nvec& operator+=(const Nvec &that) {
+		for (std::size_t i = 0; i < N; ++i) {
+			(*this)[i] += that[i];
+		}
+		return *this;
+	}
+
+	constexpr Nvec operator-() const {
+		Nvec difference;
+		for (std::size_t i = 0; i < N; ++i) {
+			difference[i] = -(*this)[i];
+		}
+		return difference;
+	}
+
+	constexpr T operator*(const Nvec &that) const {
 		T product;
 		for (std::size_t i = 0; i < N; ++i) {
-			product += this->raw[i] * that.raw[i];
+			product += (*this)[i] * that[i];
 		}
 		return product;
 	}
@@ -59,7 +101,15 @@ struct Nvec<0,T> {
 		return T(0.0l);
 	}
 };
+/*
+template <typename T>
+struct Nvec<3,T> {
+	constexpr T crossP(const Nvec<3, T> &that) const {
+		Nvec product;
 
+	}
+};
+*/
 typedef Nvec<0, long double> v0q_t;
 typedef Nvec<1, long double> v1q_t;
 typedef Nvec<2, long double> v2q_t;
@@ -72,9 +122,50 @@ template <std::size_t N, std::size_t M, typename T=long double>
 struct NxMmatrix
 {
 	typedef T TT;
-	typedef Nvec<N, T> RowT;
-	typedef Nvec<M, RowT> ColT;
+	typedef Nvec<N, T> NT;
+	typedef Nvec<M, T> MT;
+	typedef Nvec<N, MT> MVecT;
+	MVecT data;
+	MT& operator[](std::size_t n) {
+		if (n < N) {
+			 return (*this)[n];
+		} else {
+			throw std::range_error("OOR");
+		}
+	}
+	NT Nvec(std::size_t m) const {
+		if (m < M) {
+			NT nvec;
+			for (auto n = 0; n < N; ++n) {
+				nvec[n] = (*this)[n][m];
+			}
+			return nvec;
+		} else {
+			throw std::range_error("OOR");
+		}
+	}
+	NT operator*(const MT &v) const {
+		NT product;
+		for (int n = 0; n < N; ++n) {
+			const MT &mvec = (*this)[n];
+			for (int m = 0; m < M; ++m) {
+				product[n] += mvec[m] * v[m];
+			}
+		}
+		return product;
+	}
 
+	// rows in m must be equal to cols in *this but let's keep it simple
+	NxMmatrix operator*(const NxMmatrix &that) const {
+		NxMmatrix product;
+		for (auto n = 0; n < N; ++n) {
+			const MT &mvec = (*this)[n];
+			for (auto m = 0; m < M; ++m) {
+				product[n] += mvec[m] * that[m];
+			}
+		}
+		return product;
+	}
 };
 template <typename T=long double>
 struct vec2
