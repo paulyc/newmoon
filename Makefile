@@ -6,8 +6,12 @@ build:
 	cd build && make
 
 run: build
-	build/newmoon
+	build/src/newmoon
 .PHONY: run
+
+test: build
+	build/test/test
+.PHONY: test
 
 clean:
 	rm -rf build

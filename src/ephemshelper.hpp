@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA  02110-1335, USA.
  **/
 
-#ifndef _PAULYC_EPHEMSHELPER_H_
-#define _PAULYC_EPHEMSHELPER_H_
+#ifndef PAULYC_EPHEMSHELPER_HPP
+#define PAULYC_EPHEMSHELPER_HPP
 
 #include "jpl_int.h"
 #include "jpleph.h"
@@ -54,10 +54,18 @@ public:
     {
         double pv[6];
         cartesian3dvec position() const {
-            return {pv[0], pv[1], pv[2]};
+            return {{
+                static_cast<long double>(pv[0]),
+                static_cast<long double>(pv[1]),
+                static_cast<long double>(pv[2]),
+            }};
         }
         cartesian3dvec velocity() const {
-            return {pv[3], pv[4], pv[5]};
+            return {{
+                static_cast<long double>(pv[3]),
+                static_cast<long double>(pv[4]),
+                static_cast<long double>(pv[5]),
+            }};
         }
     };
     JPLEphems() : _ephdata(nullptr) {}
@@ -73,7 +81,7 @@ public:
     {
         _ephdata = static_cast<jpl_eph_data*>(jpl_init_ephemeris(filename.c_str(), _names, _values));
         if (_ephdata == nullptr) {
-            throw std::runtime_error(string_format("jpl_init_ephemeris returned code %d", jpl_init_error_code()));
+            throw std::runtime_error("jpl_init_ephemeris returned code %d"_fmt.format(jpl_init_error_code()));
         }
     }
     bool initialized() const { return _ephdata != nullptr; }
@@ -85,7 +93,7 @@ public:
 		}
         int res = jpl_pleph(_ephdata, jdt, ref, center, result.pv, 0);
         if (res != 0) {
-            throw std::runtime_error(string_format("jpl_pleph returned code %d", res));
+            throw std::runtime_error("jpl_pleph returned code %d"_fmt.format(res));
         }
         return result;
     }
@@ -126,13 +134,13 @@ public:
 	State get_nutations(double jdt)
 	{
 		State result;
-		if (!initialized()) {
-			throw std::runtime_error("try calling JPLEphems::init() first");
+        if (!initialized()) {
+            throw std::runtime_error("try calling JPLEphems::init() first"_fmt.format());
 		}
         // nutation in longitude/obliquity
 		int res = jpl_pleph(_ephdata, jdt, Nutations, Earth, result.pv, 0);
-		if (res != 0) {
-            throw std::runtime_error(string_format("jpl_pleph returned code %d", res));
+        if (res != 0) {
+            throw std::runtime_error("jpl_pleph returned code %d"_fmt.format(res));
         }
         return result;
 	}
@@ -142,4 +150,4 @@ private:
     jpl_eph_data *_ephdata;
 };
 
-#endif /* _PAULYC_EPHEMSHELPER_H_ */
+#endif /* PAULYC_EPHEMSHELPER_HPP */

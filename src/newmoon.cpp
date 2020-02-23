@@ -58,7 +58,7 @@ int run()
 
 	auto newway = [&ephems, &t, &jd]() {
 		std::chrono::system_clock::time_point mintp = std::chrono::system_clock::now();
-        long double minangle = 2*3.14159;
+        long double minangle = MMM_2_PI;
 		for (int i = 0; i < 29*24*60; ++i) {
 			jd += jd_clock::duration(60.0l/jd_clock::SECONDS_PER_JDAY);
 			t += std::chrono::seconds(60);
@@ -71,7 +71,7 @@ int run()
 			if (argabs < minangle) {
 				minangle = argabs;
 				mintp = t;
-			} else if (argabs > 3.14159/4 && minangle < 3.14159/8) {
+            } else if (argabs > MMM_PI/4.0l && minangle < MMM_PI/8.0l) {
 				break;
 			}
 		}
