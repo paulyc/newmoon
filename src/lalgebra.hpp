@@ -38,31 +38,73 @@ static constexpr long double MMM_PI    = 0x3.243f6a8885a308d313198a2e03707344a40
 static constexpr long double MMM_PI_PI = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p1l;
 static constexpr long double MMM_2_PI  = 2.0l * MMM_PI;
 
+// T is not necessarily a primitive type!
 template <std::size_t N, typename T=long double>
 struct Nvec
 {
+    static constexpr std::size_t Dim = N;
     typedef Nvec<N, T> ThisT;
     typedef T PrimT;
-    typedef std::array<T, N> PrimArrayT;
+    typedef T PrimArrayT[N];
     PrimArrayT data;
 
     constexpr Nvec() {
+        *this = T(0);
+    }
+
+    constexpr Nvec(T t) {
         for (std::size_t i = 0; i < N; ++i) {
-            data[i] = T(0.0l);
+            this->data[i] = t;
         }
     }
 
-    constexpr Nvec(T initval) {
-        for (std::size_t i = 0; i < N; ++i) {
-            data[i] = initval;
+    constexpr Nvec(const Nvec& that) {
+        int i = 0;
+        for (const T &t : that.data) {
+            this->data[i] = that.data[i];
+            ++i;
         }
     }
 
-    constexpr Nvec(std::initializer_list<T> initlist) {
+    Nvec& operator=(const Nvec &that) {
+        for (std::size_t i = 0; i < N; ++i) {
+            this->data[i] = that.data[i];
+        }
+        return *this;
+    }
+
+    constexpr Nvec(Nvec &&v) {
+        for (std::size_t i = 0; i < N; ++i) {
+            this->data[i] = v.data[i];
+        }
+    }
+
+    Nvec& operator=(Nvec &&that) {
+        for (std::size_t i = 0; i < N; ++i) {
+            this->data[i] = that.data[i];
+        }
+        return *this;
+    }
+
+    constexpr Nvec(std::initializer_list<T> l) {
+        std::size_t i = 0;
+        for (const auto &it: l) {
+            this->data[i++] = it;
+        }
+    }
+
+    constexpr Nvec(T (&initarray)[N]) {
+        for (std::size_t i = 0; i < N; ++i) {
+            this->data[i] = initarray[i];
+        }
+    }
+
+    Nvec& operator=(std::initializer_list<T> initlist) {
         int i = 0;
         for (const T &t : initlist) {
-            data[i++] = t;
+            this->data[i++] = t;
         }
+        return *this;
     }
 
     constexpr Nvec add(const Nvec &that) const {
@@ -101,7 +143,7 @@ struct Nvec
     }
 
     T dotP(const Nvec &that) const {
-        T product;
+        T product = T(0);
         for (std::size_t i = 0; i < N; ++i) {
             product += this->data[i] * that.data[i];
         }
@@ -146,9 +188,9 @@ struct NxMmatrix
         for (auto r = 0; r < M; ++r) {
             for (auto c = 0; c < N; ++c) {
                 if (r == c) {
-                    rows[r][c] = 1.0l;
+                    this->rows[r][c] = 1.0l;
                 } else {
-                    rows[r][c] = 0.0l;
+                    this->rows[r][c] = 0.0l;
                 }
             }
         }
