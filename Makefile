@@ -1,9 +1,12 @@
 all: build
 
-build:
+configure: CMakeLists.txt
 	mkdir -p build
 	cd build && cmake ..
-	cd build && make
+
+build: configure
+	cd build && make -j
+.PHONY: build
 
 run: build
 	build/src/newmoon
@@ -14,8 +17,15 @@ test: build
 .PHONY: test
 
 clean:
-	rm -rf build
+	cd build && make clean
 .PHONY: clean
+
+buildtest: build test
+.PHONY: buildtest
+
+cleanconf:
+	rm -rf build
+.PHONY: cleanconf
 
 ephem:
 	mkdir -p ephem

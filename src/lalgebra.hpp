@@ -33,10 +33,15 @@
 // it gets truncated to 80 bits on some i386/amd64 platforms, which makes it something of a short long double since
 // the chip does all double FP in 80-bit anyway and rounds it back off to 64.
 // who knows, maybe some will whole-ass it with all 256, or make a long long double later.
+
+// unsure if some preprocessor-fu would make this less copypasta, but it would also be completely unreadable,
+// and it's not as if the values are going to change, now, is it?
+static constexpr long double MMM_QUARTER_PI = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p-2l;
+static constexpr long double MMM_HALF_PI = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p-1l;
 static constexpr long double MMM_PI    = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p0l;
-// might come in handy for solving the QM diffEQs or something idk but it's fun
-static constexpr long double MMM_PI_PI = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p1l;
-static constexpr long double MMM_2_PI  = 2.0l * MMM_PI;
+static constexpr long double MMM_2_PI  = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p1l;
+static constexpr long double MMM_4_PI = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p2l;
+static constexpr long double MMM_PI_PI = MMM_PI * MMM_PI;
 
 // T is not necessarily a primitive type!
 template <std::size_t N, typename T=long double>
@@ -48,9 +53,9 @@ struct Nvec
     typedef T PrimArrayT[N];
     PrimArrayT data;
 
-    constexpr Nvec() {
+    constexpr Nvec() = delete; /*{
         *this = T(0);
-    }
+    }*/
 
     constexpr Nvec(T t) {
         for (std::size_t i = 0; i < N; ++i) {
@@ -65,6 +70,8 @@ struct Nvec
             ++i;
         }
     }
+
+    ~Nvec() = default;
 
     Nvec& operator=(const Nvec &that) {
         for (std::size_t i = 0; i < N; ++i) {
@@ -93,36 +100,34 @@ struct Nvec
         }
     }
 
-    constexpr Nvec(T (&initarray)[N]) {
+    template <std::size_t M>
+    constexpr Nvec(const T (&initarray)[M]) {
         for (std::size_t i = 0; i < N; ++i) {
             this->data[i] = initarray[i];
         }
     }
 
-    Nvec& operator=(std::initializer_list<T> initlist) {
+    /*Nvec& operator=(std::initializer_list<T> initlist) {
         int i = 0;
         for (const T &t : initlist) {
             this->data[i++] = t;
         }
         return *this;
-    }
+    }*/
 
     constexpr Nvec add(const Nvec &that) const {
-        Nvec sum;
+        T sums[N];
         for (std::size_t i = 0; i < N; ++i) {
-            sum[i] = this->data[i] + that.data[i];
+            sums[i] = this->data[i] + that.data[i];
         }
-        return sum;
+        return Nvec(sums);
     }
 
     // operator overloading is one of the Seven Deadly Sins: Vanity, but
     // for this we'll make an exception since the alternative is merely
     // unreadable rather than entirely opaque
-    T& operator[](std::size_t i) {
-        return this->data[i];
-    }
 
-    const T& operator[](std::size_t i) const {
+    T operator[](std::size_t i) const {
         return this->data[i];
     }
 
@@ -149,42 +154,43 @@ struct Nvec
         }
         return product;
     }
+
+    T mag() const {
+        return sqrtl(dotP(*this));
+    }
+
+    Nvec<3,T> crossP(const Nvec<3,T> &that) const {
+
+    }
 };
 
 template <typename T>
-struct Nvec<0,T> {
-    constexpr T dotP(const Nvec<0, T> &) const {
+struct Nvec<0, T>
+{
+    constexpr T dotP(const Nvec<0,T> &) const {
         return T(0.0l);
     }
 };
-/*
-template <typename T>
-struct Nvec<3,T> {
-	constexpr T crossP(const Nvec<3, T> &that) const {
-		Nvec product;
 
-}
-};
-*/
 typedef Nvec<0, long double> v0q_t;
 typedef Nvec<1, long double> v1q_t;
 typedef Nvec<2, long double> v2q_t;
 typedef Nvec<3, long double> v3q_t;
 
 template <typename T>
-static const Nvec<0, T> TheZeroVector;
+static constexpr Nvec<0, T> TheZeroVector = Nvec<0, T>();
 
+// NxM => 3x1 matrix = 3 cols 1 row , M=rows N=cols
 template <std::size_t N, std::size_t M, typename T=long double>
 struct NxMmatrix
 {
     typedef T TT;
-    typedef Nvec<N, T> ColT;
-    typedef Nvec<M, T> RowT;
-    typedef Nvec<N, RowT> RowVecT;
+    typedef T ColT[M];
+    typedef T RowT[N];
 
-    RowVecT rows;
+    RowT rows[M];
 
-    constexpr NxMmatrix() {
+    constexpr NxMmatrix() = delete; /*{
         for (auto r = 0; r < M; ++r) {
             for (auto c = 0; c < N; ++c) {
                 if (r == c) {
@@ -194,51 +200,76 @@ struct NxMmatrix
                 }
             }
         }
-    }
+    }*/
 
-    constexpr NxMmatrix(std::initializer_list<T> list) {
-        int i = 0;
-        for (const auto &v: list) {
-            rows[i++] = v;
+    /*
+    constexpr NxMmatrix(const T (&rows)[X][Y]) {
+        for (std::size_t r = 0; r < M; ++r) {
+            for (std::size_t c = 0; c < N; ++c) {
+                this->rows[r][c] = rows[c];
+            }
+        }
+    }*/
+
+
+    constexpr NxMmatrix(std::initializer_list<RowT> rows)
+    {
+        std::size_t r = 0;
+        for (auto rw: rows) {
+            for (std::size_t c = 0; c < N; ++c) {
+                this->rows[r][c] = rw[c];
+            }
+            ++r;
         }
     }
+
+    ~NxMmatrix() = default;
+    NxMmatrix(const NxMmatrix&) = default;
+    NxMmatrix& operator=(const NxMmatrix&) = default;
+    NxMmatrix(NxMmatrix&&) = default;
+    NxMmatrix& operator=(NxMmatrix&&) = default;
 
     // operator overloading is one of the Seven Deadly Sins: Vanity, but
     // for this we'll make an exception since the alternative is merely
     // unreadable rather than entirely opaque
-    RowT& operator[](std::size_t r) {
-        return this->rows[r];
+    // bad bad no mutating state
+    //RowT& operator[](std::size_t r) {
+    //    return this->rows[r];
+    //}
+
+    //Nvec<M> operator[](std::size_t r) const {
+    //    return this->row(r);
+    //}
+
+    constexpr Nvec<M> row(std::size_t r) const {
+        return Nvec<M>(this->rows[r]);
     }
 
-    const RowT& operator[](std::size_t n) const {
-        return this->data[n];
-    }
-
-    ColT col(std::size_t c) const {
-        ColT nvec;
+    constexpr Nvec<N> col(std::size_t c) const {
+        T colvec[N];
         for (auto r = 0; r < M; ++r) {
-            nvec.data[r] = (*this)[r][c];
+            colvec[r] = this->rows[r][c];
         }
-        return nvec;
+        return Nvec<N>(colvec);
     }
 
-    ColT mul(const ColT &v) const {
-        ColT product;
+    constexpr Nvec<M> mul(const Nvec<M> &v) const {
+        T product[M];
         for (int r = 0; r < M; ++r) {
-            product.data[r] = rows[r].dotP(v);
+            product[r] = this->row(r).dotP(v);
         }
-        return product;
+        return Nvec<M>(product);
     }
 
     // rows in m must be equal to cols in *this but let's keep it simple
     NxMmatrix mul(const NxMmatrix &that) const {
-        NxMmatrix product;
+        RowT product[M];
         for (auto r = 0; r < M; ++r) {
             for (auto c = 0; c < N; ++c) {
-                product.data[r].data[c] = rows[r].dotP(that.col(c));
+                product[r][c] = this->row(r).dotP(that.col(c));
             }
         }
-        return product;
+        return NxMmatrix(product);
     }
 };
 
