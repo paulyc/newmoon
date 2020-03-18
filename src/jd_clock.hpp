@@ -25,6 +25,7 @@
 #include <vector>
 #include <ratio>
 #include <sstream>
+#include <memory>
 #include <cassert>
 #include <ctime>
 #include <iomanip>
@@ -130,25 +131,35 @@ inline static std::ostream& operator<<(std::ostream &os, const jd_clock::time_po
     return os;
 }
 
-inline static std::string string_format(const char *format, ...)
+struct string_formatter
 {
-    char buf[1024];
-    va_list args;
-    va_start(args, format);
-    int len = std::vsnprintf(buf, sizeof(buf), format, args);
-    va_end(args);
+    std::string _fmt;
 
-    if (len < 0) {
-        throw std::runtime_error(strerror(errno));
-    } else if (static_cast<size_t>(len) >= sizeof(buf)) {
-        std::string formatted(static_cast<size_t>(len) + 1, '\0');
-        va_start(args, format);
-        std::vsnprintf(const_cast<char*>(formatted.data()), static_cast<size_t>(len) + 1, format, args);
-        va_end(args);
-        return formatted;
-    } else {
-        return std::string(buf);
+    explicit string_formatter(std::string fmt) : _fmt(fmt) {}
+
+    template <typename ... TArgs>
+    std::string format(TArgs ... args) {
+        std::size_t buflen = _fmt.length() + 1024;
+        std::unique_ptr<char[]> buf = std::make_unique<char[]>(buflen);
+
+       // int len = std::snprintf(buf.get(), buflen, "%s", _fmt.c_str());
+        int len = std::snprintf(buf.get(), buflen, _fmt.c_str(), args...);
+
+        if (len < 0) {
+            throw std::runtime_error(strerror(errno));
+        } else if (static_cast<size_t>(len) >= buflen) {
+            buflen = static_cast<std::size_t>(len) + 1;
+            buf = std::make_unique<char[]>(buflen);
+            std::snprintf(buf.get(), buflen, _fmt.c_str(), args...);
+        }
+        return std::string(buf.get());
     }
+};
+
+template <typename T, T ... Fmt>
+constexpr auto operator""_fmt()
+{
+    return string_formatter(std::string({Fmt...}));
 }
 
 #endif /* PAULYC_JD_CLOCK_HPP */

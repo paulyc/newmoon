@@ -9,4 +9,5 @@ add_executable(newmoon
 	jd_clock.cpp
 	lalgebra.hpp
 	ephemshelper.hpp
+        defunct.hpp
 )

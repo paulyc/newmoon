@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA  02110-1335, USA.
  **/
 
-#ifndef PAULYC_EPHEMSHELPER_H
-#define PAULYC_EPHEMSHELPER_H
+#ifndef PAULYC_EPHEMSHELPER_HPP
+#define PAULYC_EPHEMSHELPER_HPP
 
 #include "jpl_int.h"
 #include "jpleph.h"
@@ -73,7 +73,7 @@ public:
     {
         _ephdata = static_cast<jpl_eph_data*>(jpl_init_ephemeris(filename.c_str(), _names, _values));
         if (_ephdata == nullptr) {
-            throw std::runtime_error(string_format("jpl_init_ephemeris returned code %d", jpl_init_error_code()));
+            throw std::runtime_error("jpl_init_ephemeris returned code %d"_fmt.format(jpl_init_error_code()));
         }
     }
     bool initialized() const { return _ephdata != nullptr; }
@@ -85,7 +85,7 @@ public:
 		}
         int res = jpl_pleph(_ephdata, jdt, ref, center, result.pv, 0);
         if (res != 0) {
-            throw std::runtime_error(string_format("jpl_pleph returned code %d", res));
+            throw std::runtime_error("jpl_pleph returned code %d"_fmt.format(res));
         }
         return result;
     }
@@ -126,13 +126,13 @@ public:
 	State get_nutations(double jdt)
 	{
 		State result;
-		if (!initialized()) {
-			throw std::runtime_error("try calling JPLEphems::init() first");
+        if (!initialized()) {
+            throw std::runtime_error("try calling JPLEphems::init() first"_fmt.format());
 		}
         // nutation in longitude/obliquity
 		int res = jpl_pleph(_ephdata, jdt, Nutations, Earth, result.pv, 0);
-		if (res != 0) {
-            throw std::runtime_error(string_format("jpl_pleph returned code %d", res));
+        if (res != 0) {
+            throw std::runtime_error("jpl_pleph returned code %d"_fmt.format(res));
         }
         return result;
 	}
@@ -142,4 +142,4 @@ private:
     jpl_eph_data *_ephdata;
 };
 
-#endif /* PAULYC_EPHEMSHELPER_H */
+#endif /* PAULYC_EPHEMSHELPER_HPP */
