@@ -1,3 +1,4 @@
+
 add_executable(newmoon
 	newmoon.cpp
 	newmoon.hpp
@@ -11,3 +12,5 @@ add_executable(newmoon
 	ephemshelper.hpp
         defunct.hpp
 )
+
+target_link_libraries(newmoon quadmath)

@@ -28,6 +28,8 @@
 #include <cstdint>
 #include <cmath>
 
+#include <quadmath.h>
+
 // TODO find the sinq/cosq on clang quadmath.h not available idk
 
 // magic number copied from somewhere(??). Not eligible for copyright protection as a simple statement of fact.
