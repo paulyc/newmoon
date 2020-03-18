@@ -58,7 +58,7 @@ int run()
 
 	auto newway = [&ephems, &t, &jd]() {
 		std::chrono::system_clock::time_point mintp = std::chrono::system_clock::now();
-        long double minangle = 2*3.14159;
+        __float128 minangle = MMM_2_PI;
 		for (int i = 0; i < 29*24*60; ++i) {
 			jd += jd_clock::duration(60.0l/jd_clock::SECONDS_PER_JDAY);
 			t += std::chrono::seconds(60);
@@ -66,25 +66,25 @@ int run()
 			cartesian3dvec moonpos = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Moon).position();
 			cartesian3dvec sunpos = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Sun).position();
 
-			const long double arg = moonpos.angle(sunpos);
-			const long double argabs = fabsl(arg);
+			const __float128 arg = moonpos.angle(sunpos);
+			const __float128 argabs = fabsl(arg);
 			if (argabs < minangle) {
 				minangle = argabs;
 				mintp = t;
-			} else if (argabs > 3.14159/4 && minangle < 3.14159/8) {
+			} else if (argabs > MMM_PI/4.0q && minangle < MMM_PI/8.0q) {
 				break;
 			}
 		}
-		std::cout << "minangle (newmoon) " << minangle << " at mintp " << mintp << std::endl;
+		std::cout << "minangle (newmoon) " << static_cast<long double>(minangle) << " at mintp " << mintp << std::endl;
 	};
 
 	auto oldway = [&ephems, &t, &jd]() {
 		std::chrono::system_clock::time_point mintp = std::chrono::system_clock::now();
-        long double minangle = 2*3.14159;
+        __float128 minangle = MMM_2_PI;
 		// just find the time when its the minimum
-        long double lastmags[2] = {-3.0l};
+        __float128 lastmags[2] = {-3.0q};
         size_t lastmag_indx = 0;
-		long double minmag = 3.0l;
+		__float128 minmag = 3.0q;
         for (int i = 0; i < 29*24*60; ++i) {
             jd += jd_clock::duration(60.0l/jd_clock::SECONDS_PER_JDAY);
             t += std::chrono::seconds(60);
@@ -92,20 +92,20 @@ int run()
             const cartesian3dvec sm = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Moon).position();
             const cartesian3dvec ss = ephems.get_state(jd_now, JPLEphems::Sun, JPLEphems::EarthMoonBarycenter).position();
             const cartesian3dvec sum = sm.sum(ss);
-            const long double mag = sum.mag();
-            const long double lastmag = lastmags[lastmag_indx % 2];
+            const __float128 mag = sum.mag();
+            const __float128 lastmag = lastmags[lastmag_indx % 2];
             ++lastmag_indx;
             lastmags[lastmag_indx % 2] = mag;
-            const long double dmag = mag - lastmag;
+            const __float128 dmag = mag - lastmag;
             //std::cout << "Magnitude " << magphase[0] << " Angle " << magphase[1] << " at date " << t << std::endl;
-            if (mag < minmag && dmag < 0.0l) {
+            if (mag < minmag && dmag < 0.0q) {
                 minmag = mag;
                 mintp = t;
-            } else if (mag > 1.0l && minmag < 0.05l && dmag > 0.0l) {
+            } else if (mag > 1.0q && minmag < 0.05q && dmag > 0.0q) {
                 break;
             }
         }
-        std::cout << "minmag (newmoon) " << minmag << " at mintp " << mintp << std::endl;
+        std::cout << "minmag (newmoon) " << static_cast<long double>(minmag) << " at mintp " << mintp << std::endl;
 	};
 
     // generate newmoons every ts seconds forever

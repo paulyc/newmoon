@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA  02110-1335, USA.
  **/
 
-#ifndef _PAULYC_JD_CLOCK_HPP_
-#define _PAULYC_JD_CLOCK_HPP_
+#ifndef PAULYC_JD_CLOCK_HPP
+#define PAULYC_JD_CLOCK_HPP
 
 #include <chrono>
 #include <vector>
@@ -151,4 +151,4 @@ inline static std::string string_format(const char *format, ...)
     }
 }
 
-#endif /* _PAULYC_JD_CLOCK_HPP_ */
+#endif /* PAULYC_JD_CLOCK_HPP */

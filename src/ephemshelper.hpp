@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA  02110-1335, USA.
  **/
 
-#ifndef _PAULYC_EPHEMSHELPER_H_
-#define _PAULYC_EPHEMSHELPER_H_
+#ifndef PAULYC_EPHEMSHELPER_H
+#define PAULYC_EPHEMSHELPER_H
 
 #include "jpl_int.h"
 #include "jpleph.h"
@@ -54,10 +54,10 @@ public:
     {
         double pv[6];
         cartesian3dvec position() const {
-            return {pv[0], pv[1], pv[2]};
+            return {{static_cast<__float128>(pv[0]), static_cast<__float128>(pv[1]), static_cast<__float128>(pv[2])}};
         }
         cartesian3dvec velocity() const {
-            return {pv[3], pv[4], pv[5]};
+            return {{static_cast<__float128>(pv[3]), static_cast<__float128>(pv[4]), static_cast<__float128>(pv[5])}};
         }
     };
     JPLEphems() : _ephdata(nullptr) {}
@@ -118,7 +118,7 @@ public:
 
     ± 66° 33' 48.485"  =  ± 66.5634680877°
 
-    static long double obliquity_of_ecliptic(double jd2000)
+    static __float128 obliquity_of_ecliptic(double jd2000)
     {
         return 23.4393 - 3.563E-7 * jd2000;
     }
@@ -142,4 +142,4 @@ private:
     jpl_eph_data *_ephdata;
 };
 
-#endif /* _PAULYC_EPHEMSHELPER_H_ */
+#endif /* PAULYC_EPHEMSHELPER_H */
