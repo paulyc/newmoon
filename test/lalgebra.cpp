@@ -3,7 +3,7 @@
 
 #include <gtest/gtest.h>
 #include "../src/lalgebra.hpp"
-#include <quadmath.h>
+#include "quadmath.h"
 
 namespace {
 
@@ -38,8 +38,8 @@ TEST(LAlgebraTestSuite, TestTrue) {
 }
 
 TEST(LAlgebraTestSuite, TestConstants) {
-    EXPECT_TRUE(fuzzy_eq(MMM_2_PI, 2.0q*MMM_PI));
-    EXPECT_TRUE(fuzzy_eq(MMM_PI_PI, MMM_PI * MMM_PI));
+    EXPECT_TRUE(fuzzy_eq(MMM_2_PI, 2.0q * MMM_PI));
+    EXPECT_TRUE(fuzzy_eq(MMM_4_PI, 4.0q * MMM_PI));
 }
 
 class NvecTestFixture : public testing::Test
@@ -88,16 +88,16 @@ class NxMmatrixTestFixture : public testing::Test
 {
 protected:
     static constexpr Nvec<3> u = {1.0q, 2.0q, 3.0q};
-    static constexpr NxMmatrix<3,3> m = {{
+    static constexpr NxMmatrix<3,3> m = {
         {1.0q, 2.0q, 3.0q},
         {4.0q, 5.0q, 6.0q},
         {7.0q, 8.0q, 9.0q},
-        }};
-    static constexpr NxMmatrix<3,3> n = {{
+    };
+    static constexpr NxMmatrix<3,3> n = {
         {10.0q, 20.0q, 30.0q},
         {40.0q, 50.0q, 60.0q},
         {70.0q, 80.0q, 90.0q},
-        }};
+    };
 };
 
 TEST_F(NxMmatrixTestFixture, TestTrue) {
@@ -106,14 +106,14 @@ TEST_F(NxMmatrixTestFixture, TestTrue) {
 
 TEST_F(NxMmatrixTestFixture, TestVecMul) {
     Nvec<3> v = m.mul(u);
-    __float128 dotP0 = m.row(0).dotP(v);
-    __float128 dotP1 = m.row(1).dotP(v);
-    __float128 dotP2 = m.row(2).dotP(v);
-    EXPECT_TRUE(fuzzy_eq(dotP0, 4.0q+9.0q));
+    __float128 dotP0 = m.row(0).dotP(u);
+    __float128 dotP1 = m.row(1).dotP(u);
+    __float128 dotP2 = m.row(2).dotP(u);
+    EXPECT_TRUE(fuzzy_eq(dotP0, 1.0q+4.0q+9.0q));
     EXPECT_TRUE(fuzzy_eq(dotP1, 4.0q+10.0q+18.0q));
     EXPECT_TRUE(fuzzy_eq(dotP2, 7.0q+16.0q+27.0q));
-    Nvec<3> u = {dotP0, dotP1, dotP2};
-    EXPECT_TRUE(fuzzy_eq(v, u));
+    Nvec<3> z = {dotP0, dotP1, dotP2};
+    EXPECT_TRUE(fuzzy_eq(v, z));
 }
 
 }

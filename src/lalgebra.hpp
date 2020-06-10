@@ -42,23 +42,28 @@
 // who knows, maybe some will whole-ass it with all 256, or make a long __float128 later.
 static constexpr __float128 MMM_INVERSE_PI_PI = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p-1q;
 static constexpr __float128 MMM_PI    = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p0q;
-// might come in handy for solving the QM diffEQs or something idk but it's fun
-static constexpr __float128 MMM_PI_PI  = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p1q;
-static constexpr __float128 MMM_2_PI  = 2.0q * MMM_PI;
+static constexpr __float128 MMM_2_PI  = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p1q;
+static constexpr __float128 MMM_4_PI  = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p2q;
 
 // T is not necessarily a primitive type!
 template <std::size_t N, typename T=__float128>
 struct Nvec
 {
     static constexpr std::size_t Dim = N;
-    typedef Nvec<N, T> ThisT;
+    typedef T ThisT[N];
     typedef T PrimT;
-    typedef T PrimArrayT[N];
-    PrimArrayT data;
+    ThisT data;
 
     constexpr Nvec() = delete; /*{
         *this = T(0);
     }*/
+
+    template<typename U>
+    constexpr Nvec<3, U>(U x, U y, U z) {
+        data[0] = x;
+        data[1] = y;
+        data[2] = z;
+    }
 
     constexpr Nvec(T t) {
         for (std::size_t i = 0; i < N; ++i) {
@@ -67,7 +72,7 @@ struct Nvec
     }
 
     constexpr Nvec(const Nvec& that) {
-        int i = 0;
+        std::size_t i = 0;
         for (const T &t : that.data) {
             this->data[i] = that.data[i];
             ++i;
@@ -96,16 +101,9 @@ struct Nvec
         return *this;
     }
 
-    constexpr Nvec(std::initializer_list<T> l) {
-        std::size_t i = 0;
-        for (const auto &it: l) {
-            this->data[i++] = it;
-        }
-    }
-
     template <std::size_t M>
     constexpr Nvec(const T (&initarray)[M]) {
-        for (std::size_t i = 0; i < N; ++i) {
+        for (std::size_t i = 0; i < M; ++i) {
             this->data[i] = initarray[i];
         }
     }

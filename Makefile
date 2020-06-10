@@ -1,12 +1,18 @@
+_: all
+
 all: build
 
 configure: CMakeLists.txt
 	mkdir -p build
 	cd build && cmake ..
 
-build: configure
+build: submodules configure
 	cd build && make -j
 .PHONY: build
+
+submodules:
+	git submodule update --init --recursive
+.PHONY: submodules
 
 run: build
 	build/src/newmoon

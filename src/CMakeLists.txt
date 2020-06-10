@@ -1,4 +1,5 @@
 
+
 add_executable(newmoon
 	newmoon.cpp
 	newmoon.hpp
@@ -13,4 +14,6 @@ add_executable(newmoon
         defunct.hpp
 )
 
-target_link_libraries(newmoon quadmath)
+target_include_directories(newmoon PUBLIC ../include)
+
+target_link_libraries(newmoon -lquadmath)
