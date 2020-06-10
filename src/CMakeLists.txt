@@ -10,8 +10,7 @@ add_executable(newmoon
 	jd_clock.hpp
 	jd_clock.cpp
 	lalgebra.hpp
-	ephemshelper.hpp
-        defunct.hpp
+        ephemshelper.hpp
 )
 
 target_include_directories(newmoon PUBLIC ../include)

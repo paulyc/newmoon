@@ -108,14 +108,6 @@ struct Nvec
         }
     }
 
-    /*Nvec& operator=(std::initializer_list<T> initlist) {
-        int i = 0;
-        for (const T &t : initlist) {
-            this->data[i++] = t;
-        }
-        return *this;
-    }*/
-
     constexpr Nvec add(const Nvec &that) const {
         T sums[N];
         for (std::size_t i = 0; i < N; ++i) {

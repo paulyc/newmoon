@@ -11,6 +11,6 @@
 #find_library(GMOCK_MAIN_LIBRARY gmock_main PATHS ${LIBRARY_PATHS})
 
 
-add_executable(test main.cpp lalgebra.cpp)
+add_executable(test main.cpp lalgebra.cpp jd_clock.cpp)
 target_include_directories(test PUBLIC ../include)
 target_link_libraries(test ${GTEST_LIBRARY} pthread -lquadmath -lgtest)

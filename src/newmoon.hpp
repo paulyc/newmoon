@@ -21,4 +21,34 @@
 #ifndef PAULYC_NEWMOON_HPP
 #define PAULYC_NEWMOON_HPP
 
+#include <memory>
+#include <chrono>
+
+#include "jd_clock.hpp"
+
+class JPLEphems;
+
+namespace paulyc {
+
+class NewMoon
+{
+public:
+    NewMoon() = default;
+    ~NewMoon() = default;
+    NewMoon(const NewMoon&) = delete;
+    NewMoon& operator=(const NewMoon&) = delete;
+    NewMoon(NewMoon&&);
+    NewMoon& operator=(NewMoon&&);
+
+    void init();
+    std::chrono::system_clock::time_point next_moon();
+
+private:
+    std::unique_ptr<JPLEphems> _ephems;
+    std::chrono::system_clock::time_point _t;
+    jd_clock::time_point _jd;
+};
+
+}
+
 #endif // PAULYC_NEWMOON_HPP

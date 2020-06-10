@@ -19,120 +19,87 @@
  **/
 
 #include "lalgebra.hpp"
-#include "jd_clock.hpp"
+
+#include "newmoon.hpp"
 #include "ephemshelper.hpp"
 
 #include <iostream>
 
-int run()
-{
-    JPLEphems ephems;
+namespace paulyc {
 
+//NewMoon::NewMoon(NewMoon &&other) {
+//    _ephems.swap(other._ephems);
+//}
+
+NewMoon& NewMoon::operator=(NewMoon &&rhs) {
+    _ephems.swap(rhs._ephems);
+    return *this;
+}
+
+void NewMoon::init()
+{
     char tzbuf[] = "TZ=UTC";
     putenv(tzbuf);
     tzset();
 
-    std::chrono::system_clock::time_point t = std::chrono::system_clock::now();
-    jd_clock::time_point jd = jd_clock::now();
+    std::chrono::system_clock::time_point _t = std::chrono::system_clock::now();
+    jd_clock::time_point _jd = jd_clock::now();
 
-    std::cout << "hello newmoon " << t << " JD = " << jd << std::endl;
+    std::cout << "hello newmoon current time = " << _t << " JD = " << _jd << std::endl;
 
-    timespec ts = {5,0}; //5.000000000s
+    _ephems = std::make_unique<JPLEphems>();
+
     try {
-        ephems.init("ephem/lnxm13000p17000.431");
+        _ephems->init("ephem/lnxm13000p17000.431");
     } catch (const std::exception &ex0) {
         try {
-            ephems.init("ephem/linux_p1550p2650.430t");
+            _ephems->init("ephem/linux_p1550p2650.430t");
         } catch (const std::exception &ex1) {
             try {
-                ephems.init("ephem/linux_p1550p2650.430");
+                _ephems->init("ephem/linux_p1550p2650.430");
             } catch (const std::exception &ex2) {
                 std::cerr << "Couldn't initialize ephems: " <<
                              ex0.what() << ' ' <<
                              ex1.what() << ' ' <<
                              ex2.what() << std::endl;
-                return 1;
             }
         }
     }
-
-	auto newway = [&ephems, &t, &jd]() {
-		std::chrono::system_clock::time_point mintp = std::chrono::system_clock::now();
-        __float128 minangle = MMM_2_PI;
-		for (int i = 0; i < 29*24*60; ++i) {
-			jd += jd_clock::duration(60.0l/jd_clock::SECONDS_PER_JDAY);
-			t += std::chrono::seconds(60);
-			const double jd_now = static_cast<double>(jd_clock::duration(jd.time_since_epoch()).count());
-			cartesian3dvec moonpos = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Moon).position();
-			cartesian3dvec sunpos = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Sun).position();
-
-			const __float128 arg = moonpos.angle(sunpos);
-			const __float128 argabs = fabsl(arg);
-			if (argabs < minangle) {
-				minangle = argabs;
-				mintp = t;
-			} else if (argabs > MMM_PI/4.0q && minangle < MMM_PI/8.0q) {
-				break;
-			}
-		}
-		std::cout << "minangle (newmoon) " << static_cast<long double>(minangle) << " at mintp " << mintp << std::endl;
-	};
-
-	auto oldway = [&ephems, &t, &jd]() {
-		std::chrono::system_clock::time_point mintp = std::chrono::system_clock::now();
-        __float128 minangle = MMM_2_PI;
-		// just find the time when its the minimum
-        __float128 lastmags[2] = {-3.0q};
-        size_t lastmag_indx = 0;
-		__float128 minmag = 3.0q;
-        for (int i = 0; i < 29*24*60; ++i) {
-            jd += jd_clock::duration(60.0l/jd_clock::SECONDS_PER_JDAY);
-            t += std::chrono::seconds(60);
-            const double jd_now = static_cast<double>(jd_clock::duration(jd.time_since_epoch()).count());
-            const cartesian3dvec sm = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Moon).position();
-            const cartesian3dvec ss = ephems.get_state(jd_now, JPLEphems::Sun, JPLEphems::EarthMoonBarycenter).position();
-            const cartesian3dvec sum = sm.sum(ss);
-            const __float128 mag = sum.mag();
-            const __float128 lastmag = lastmags[lastmag_indx % 2];
-            ++lastmag_indx;
-            lastmags[lastmag_indx % 2] = mag;
-            const __float128 dmag = mag - lastmag;
-            //std::cout << "Magnitude " << magphase[0] << " Angle " << magphase[1] << " at date " << t << std::endl;
-            if (mag < minmag && dmag < 0.0q) {
-                minmag = mag;
-                mintp = t;
-            } else if (mag > 1.0q && minmag < 0.05q && dmag > 0.0q) {
-                break;
-            }
-        }
-        std::cout << "minmag (newmoon) " << static_cast<long double>(minmag) << " at mintp " << mintp << std::endl;
-	};
-
-    // generate newmoons every ts seconds forever
-    for (;;) {
-#if 1
-		newway();
-#else
-		oldway();
-#endif
-
-        nanosleep(&ts, nullptr);
-    }
-
-    std::cout << "goodbye newmoon" << std::endl;
-    return 0;
 }
 
-int test() {
-    jd_clock::test_delta_t_lerp();
-    auto jd = jd_clock::now();
-    std::cerr << jd << std::endl;
-    std::cerr << jd.time_since_epoch().count() << std::endl;
-    const double jd_now = static_cast<double>(jd_clock::duration(jd.time_since_epoch()).count());
-    std::cerr << jd_now << std::endl;
-    return 0;
+std::chrono::system_clock::time_point NewMoon::next_moon()
+{
+    //static timespec ts = {5,0}; //5.000000000s
+    std::chrono::system_clock::time_point mintp = std::chrono::system_clock::now();
+    __float128 minangle = MMM_2_PI;
+    for (int i = 0; i < 29*24*60; ++i) {
+        _jd += jd_clock::duration(60.0l/jd_clock::SECONDS_PER_JDAY);
+        _t += std::chrono::seconds(60);
+        const double jd_now = static_cast<double>(jd_clock::duration(_jd.time_since_epoch()).count());
+        cartesian3dvec moonpos = _ephems->get_state(jd_now, JPLEphems::Earth, JPLEphems::Moon).position();
+        cartesian3dvec sunpos = _ephems->get_state(jd_now, JPLEphems::EarthMoonBarycenter, JPLEphems::Sun).position();
+
+        const __float128 arg = moonpos.angle(sunpos);
+        const __float128 argabs = fabsl(arg);
+        if (argabs < minangle) {
+            minangle = argabs;
+            mintp = _t;
+        } else if (argabs > MMM_PI/4.0q && minangle < MMM_PI/16.0q) {
+            break;
+        }
+    }
+    std::cout << "minangle (newmoon) " << static_cast<long double>(minangle) << " at mintp " << mintp << std::endl;
+    return mintp;
+}
+
 }
 
 int main() {
-    return test() || run();
+    paulyc::NewMoon nm;
+    nm.init();
+    for (;;) {
+        auto next = nm.next_moon();
+        std::cout << next << std::endl;
+    }
+    return 0;
 }
