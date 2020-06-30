@@ -28,7 +28,10 @@
 #include <cstdint>
 #include <cmath>
 
+#if defined(USE_FLOAT128) && USE_FLOAT128
+
 #include <quadmath.h>
+typedef __float128 DefaultFloatingT;
 
 // TODO find the sinq/cosq on clang quadmath.h not available idk
 
@@ -45,8 +48,14 @@ static constexpr __float128 MMM_PI    = 0x3.243f6a8885a308d313198a2e03707344a409
 static constexpr __float128 MMM_2_PI  = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p1q;
 static constexpr __float128 MMM_4_PI  = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p2q;
 
+#else
+
+typedef double DefaultFloatingT;
+
+#endif
+
 // T is not necessarily a primitive type!
-template <std::size_t N, typename T=__float128>
+template <std::size_t N, typename T=DefaultFloatingT>
 struct Nvec
 {
     static constexpr std::size_t Dim = N;
@@ -182,7 +191,7 @@ template <typename T>
 static constexpr Nvec<0, T> TheZeroVector = Nvec<0, T>();
 
 // NxM => 3x1 matrix = 3 cols 1 row , M=rows N=cols
-template <std::size_t N, std::size_t M, typename T=__float128>
+template <std::size_t N, std::size_t M, typename T=DefaultFloatingT>
 struct NxMmatrix
 {
     typedef T TT;
@@ -274,7 +283,7 @@ struct NxMmatrix
     }
 };
 
-template <typename T=__float128>
+template <typename T=DefaultFloatingT>
 struct vec2
 {
     typedef T TT;
@@ -288,7 +297,13 @@ struct vec2
 typedef vec2<double> vec2d_t;
 typedef vec2<__float128> vec2q_t;
 
-template <typename T=__float128>
+#if defined(USE_FLOAT128) && USE_FLOAT128
+typedef vec2q_t vec2_t;
+#else
+typedef vec2d_t vec2_t;
+#endif
+
+template <typename T=DefaultFloatingT>
 struct vec3
 {
     typedef T TT;
@@ -307,7 +322,13 @@ struct vec3
 typedef vec3<double> vec3d_t;
 typedef vec3<__float128> vec3q_t;
 
-template <typename T=__float128>
+#if defined(USE_FLOAT128) && USE_FLOAT128
+typedef vec3q_t vec3_t;
+#else
+typedef vec3d_t vec3_t;
+#endif
+
+template <typename T=DefaultFloatingT>
 struct mat3x3
 {
     typedef T TT;
@@ -346,7 +367,7 @@ struct mat3x3
 
     // https://gssc.esa.int/navipedia/index.php/Transformation_between_Terrestrial_Frames
     // ????
-    vec3q_t mul(const vec3q_t &v) const {
+    vec3_t mul(const vec3_t &v) const {
         return {
             elems[0][0] * v.raw[0] + elems[0][1] * v.raw[1] + elems[0][2] * v.raw[2],
             elems[1][0] * v.raw[0] + elems[1][1] * v.raw[1] + elems[1][2] * v.raw[2],
@@ -354,7 +375,7 @@ struct mat3x3
         };
     }
 
-    static constexpr mat3x3 R_0(__float128 α, __float128 θ_1, __float128 θ_2, __float128 θ_3) {
+    static constexpr mat3x3 R_0(DefaultFloatingT α, DefaultFloatingT θ_1, DefaultFloatingT θ_2, DefaultFloatingT θ_3) {
         //const mat3x3 r_1 = R_1(θ_1);
         //const mat3x3 r_2 = R_2(θ_2);
         //const mat3x3 r_3 = R_3(θ_3);
@@ -364,18 +385,18 @@ struct mat3x3
             {-θ_2,  θ_1,    α},
             };
         }
-    static constexpr mat3x3 R_1(__float128 θ) {
-        const __float128 sin_θ = sinl(θ);
-        const __float128 cos_θ = cosl(θ);
+    static constexpr mat3x3 R_1(DefaultFloatingT θ) {
+        const DefaultFloatingT sin_θ = sinl(θ);
+        const DefaultFloatingT cos_θ = cosl(θ);
         return {
             {1.0q,   0.0q,  0.0q},
             {0.0q,  cos_θ, sin_θ},
             {0.0q, -sin_θ, cos_θ},
             };
         }
-    static constexpr mat3x3 R_2(__float128 θ) {
-        const __float128 sin_θ = sinl(θ);
-        const __float128 cos_θ = cosl(θ);
+    static constexpr mat3x3 R_2(DefaultFloatingT θ) {
+        const DefaultFloatingT sin_θ = sinl(θ);
+        const DefaultFloatingT cos_θ = cosl(θ);
         return {
             {cos_θ, 0.0q, -sin_θ},
             { 0.0q, 1.0q,   0.0q},
