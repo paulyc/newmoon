@@ -2,7 +2,11 @@ _: all
 
 all: build
 
-configure: CMakeLists.txt
+submodules:
+	git submodule update --init
+.PHONY: submodules
+
+configure: CMakeLists.txt submodules
 	mkdir -p build
 	cd build && cmake ..
 
@@ -40,4 +44,5 @@ ephem431:
 
 distclean: clean
 	rm -rf ephem
+	rm -rf build
 .PHONY: distclean
