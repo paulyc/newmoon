@@ -20,6 +20,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 #ifndef _JPL_INT_H_
 #define _JPL_INT_H_
 
+#include <stdint.h>
+#include <stdio.h>
+
             /* Thus far,  no DE ephems use eighteen terms in the Chebyshev */
             /* expansion.  There's an assert to catch it if this changes.. */
 #define MAX_CHEBY          18

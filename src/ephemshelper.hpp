@@ -60,6 +60,26 @@ public:
             return {{static_cast<__float128>(pv[3]), static_cast<__float128>(pv[4]), static_cast<__float128>(pv[5])}};
         }
     };
+    struct NutationState
+    {
+        double pv[6];
+        //radians - delta psi
+        __float128 nutationInLongitude() const {
+            return static_cast<__float128>(pv[0]);
+        }
+        //radians - delta epsilon
+        __float128 nutationInObliquity() const {
+            return static_cast<__float128>(pv[1]);
+        }
+        //radians/day
+        __float128 nutationInLongitudeRate() const {
+            return static_cast<__float128>(pv[2]);
+        }
+        //radians/day
+        __float128 nutationInObliquityRate() const {
+            return static_cast<__float128>(pv[3]);
+        }
+    };
     JPLEphems() : _ephdata(nullptr) {}
     ~JPLEphems()
     {
@@ -123,19 +143,32 @@ public:
         return 23.4393 - 3.563E-7 * jd2000;
     }
 */
-	State get_nutations(double jdt)
+    NutationState get_nutations(double jdt)
 	{
-		State result;
+        NutationState result;
         if (!initialized()) {
             throw std::runtime_error("try calling JPLEphems::init() first"_fmt.format());
 		}
-        // nutation in longitude/obliquity
-		int res = jpl_pleph(_ephdata, jdt, Nutations, Earth, result.pv, 0);
+
+        int res = jpl_pleph(_ephdata, jdt, Nutations, 0, result.pv, 0);
         if (res != 0) {
             throw std::runtime_error("jpl_pleph returned code %d"_fmt.format(res));
         }
         return result;
 	}
+
+    State get_librations(double jdt)
+    {
+        State result;
+        if (!initialized()) {
+            throw std::runtime_error("try calling JPLEphems::init() first"_fmt.format());
+        }
+        int res = jpl_pleph(_ephdata, jdt, Librations, 0, result.pv, 0);
+        if (res != 0) {
+            throw std::runtime_error("jpl_pleph returned code %d"_fmt.format(res));
+        }
+        return result;
+    }
 private:
     char _names[MAX_CONSTANTS][6];
     double _values[MAX_CONSTANTS];

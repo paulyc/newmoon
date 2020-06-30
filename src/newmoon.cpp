@@ -63,19 +63,46 @@ int run()
 			jd += jd_clock::duration(60.0l/jd_clock::SECONDS_PER_JDAY);
 			t += std::chrono::seconds(60);
 			const double jd_now = static_cast<double>(jd_clock::duration(jd.time_since_epoch()).count());
-			cartesian3dvec moonpos = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Moon).position();
-			cartesian3dvec sunpos = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Sun).position();
+            cartesian3dvec moonpos = ephems.get_state(jd_now, JPLEphems::EarthMoonBarycenter, JPLEphems::Moon).position();
+            const __float128 moonR = moonpos.mag();
+            cartesian3dvec sunpos = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Sun).position();
+            const __float128 sunR = sunpos.mag();
+            JPLEphems::NutationState ns = ephems.get_nutations(jd_now);
+            //asinq(moonpos.z() / moonR);
+            const __float128 α_moon = atanq(moonpos.y()/moonpos.x());// asinq(moonpos.y() / (moonR*cosq(δ_moon)));
+            const __float128 δ_moon = atanq(moonpos.z()/(moonpos.y()*sinq(α_moon)));
 
-			const __float128 arg = moonpos.angle(sunpos);
-			const __float128 argabs = fabsl(arg);
+            const __float128 α_sun = atanq(sunpos.y()/sunpos.x());//asinq(sunpos.y() / (moonR*cosq(δ_sun)));
+            const __float128 δ_sun = atanq(sunpos.z()/(sunpos.y()*sinq(α_sun)));
+
+            const __float128 Δψ = ns.nutationInLongitude();
+            const __float128 Δɛ = ns.nutationInObliquity();
+#define MATH_IS_HARD 1
+#if !MATH_IS_HARD
+            const __float128 ɛ_0 = 0.40904635907; //23.43663 deg in radians
+            const __float128 ɛ = ɛ_0;// + Δɛ;
+
+            const __float128 Δα_moon = (cosq(ɛ)  + sinq(ɛ)*sinq(α_moon)*tanq(δ_moon)) * Δψ - cosq(α_moon)*tan(δ_moon)*Δɛ;
+            const __float128 Δδ_moon = cosq(α_moon)*sinq(ɛ)*Δψ + sinq(α_moon)*Δɛ;
+            const __float128 Δα_sun = (cosq(ɛ)  + sinq(ɛ)*sinq(α_sun)*tanq(δ_sun)) * Δψ - cosq(α_sun)*tan(δ_sun)*Δɛ;
+            const __float128 Δδ_sun = cosq(α_sun)*sinq(ɛ)*Δψ + sinq(α_sun)*Δɛ;
+            const __float128 arg = (α_moon - Δα_moon) - (α_sun - Δα_sun);
+            //if (fabsq(arg) < 0.0000000001) {
+            //    break;
+            //}
+#else
+            //works better anyway
+            const __float128 arg = moonpos.angle(sunpos);
+#endif
+            const __float128 argabs = fabsq(arg);
 			if (argabs < minangle) {
 				minangle = argabs;
 				mintp = t;
-			} else if (argabs > MMM_PI/4.0q && minangle < MMM_PI/8.0q) {
+            } else if (argabs > MMM_PI/4.0q && minangle < 0.0001) {
 				break;
-			}
+            }
 		}
-		std::cout << "minangle (newmoon) " << static_cast<long double>(minangle) << " at mintp " << mintp << std::endl;
+        std::cout << "minangle (newmoon) " << static_cast<long double>(minangle) << " at mintp " << mintp << std::endl;
 	};
 
 	auto oldway = [&ephems, &t, &jd]() {
