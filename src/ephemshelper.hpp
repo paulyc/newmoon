@@ -21,6 +21,8 @@
 #ifndef PAULYC_EPHEMSHELPER_HPP
 #define PAULYC_EPHEMSHELPER_HPP
 
+#include <cstdint>
+
 #include "jpl_int.h"
 #include "jpleph.h"
 #include "lalgebra.hpp"

@@ -1,4 +1,6 @@
 
+project(newmoon_executable)
+
 add_executable(newmoon
         newmoon.cpp
 	get_bin.h

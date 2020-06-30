@@ -91,7 +91,14 @@ int run()
             //    break;
             //}
 #else
-            //works better anyway
+
+           // yeah i have no clue but one of these angles might have something to do with phase
+#define USE_THE_LIBRATION 0
+#if USE_THE_LIBRATION
+            JPLEphems::State ls = ephems.get_librations(jd_now);
+
+#endif
+            //works better than using RAs and nutations anyway! go figure
             const __float128 arg = moonpos.angle(sunpos);
 #endif
             const __float128 argabs = fabsq(arg);
