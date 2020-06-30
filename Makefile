@@ -6,24 +6,30 @@ submodules:
 	git submodule update --init
 .PHONY: submodules
 
-configure: CMakeLists.txt submodules
+googletest/lib/libgtest.a: submodules
+	cd googletest && cmake . && make -j
+
+googletest: googletest/lib/libgtest.a
+
+build: CMakeLists.txt googletest
+	rm -rf build
 	mkdir -p build
-	cd build && cmake ..
+	cd build && cmake .. && make -j
 
-build: configure
-	cd build && make -j
-.PHONY: build
+build/test/test: build test/*
+build/src/newmoon: build src/*
 
-run: build
+run: build/src/newmoon
 	build/src/newmoon
 .PHONY: run
 
-test: build
+test: build/test/test
 	build/test/test
 .PHONY: test
 
 clean:
-	cd build && make clean
+	rm -rf build
+	rm -rf googletest
 .PHONY: clean
 
 buildtest: build test
@@ -42,7 +48,7 @@ ephem431:
 	mkdir -p ephem
 	cd ephem && wget ftp://ssd.jpl.nasa.gov/pub/eph/planets/Linux/de431/lnxm13000p17000.431
 
-distclean: clean
+ephem-clean:
 	rm -rf ephem
-	rm -rf build
-.PHONY: distclean
+
+distclean: clean ephem-clean
