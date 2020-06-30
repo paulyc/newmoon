@@ -3,7 +3,6 @@
 
 #include <gtest/gtest.h>
 #include "../src/lalgebra.hpp"
-#include "quadmath.h"
 
 namespace {
 

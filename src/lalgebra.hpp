@@ -28,7 +28,7 @@
 #include <cstdint>
 #include <cmath>
 
-#include <quadmath.h>
+#include "quadmath.h"
 
 // TODO find the sinq/cosq on clang quadmath.h not available idk
 

@@ -1,8 +1,6 @@
 
-
 add_executable(newmoon
-	newmoon.cpp
-	newmoon.hpp
+        newmoon.cpp
 	get_bin.h
 	jpleph.cpp
 	jpleph.h
@@ -10,10 +8,8 @@ add_executable(newmoon
 	jd_clock.hpp
 	jd_clock.cpp
 	lalgebra.hpp
-	ephemshelper.hpp
-        defunct.hpp
+        ephemshelper.hpp
+        quadmath.h
 )
-
-target_include_directories(newmoon PUBLIC ../include)
 
 target_link_libraries(newmoon -lquadmath)
