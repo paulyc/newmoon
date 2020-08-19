@@ -62,7 +62,7 @@ struct Nvec
     }*/
 
     template<typename U>
-    constexpr Nvec<3, U>(U x, U y, U z) {
+    constexpr Nvec<3, U> (U x, U y, U z) {
         data[0] = x;
         data[1] = y;
         data[2] = z;

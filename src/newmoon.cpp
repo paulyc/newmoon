@@ -59,7 +59,7 @@ f_type moonSunAngle = [](JPLEphems &ephems, const jd_clock::time_point &jd) -> _
 #endif
 };
 
-auto minFinder = [](JPLEphems &ephems, std::chrono::system_clock::time_point &t, jd_clock::time_point &jd, f_type moonSunAngle) {
+auto minFinder = [](JPLEphems &ephems, std::chrono::system_clock::time_point &t, jd_clock::time_point &jd, f_type moonSunAngle) -> std::chrono::system_clock::time_point {
     std::chrono::system_clock::time_point mintp = std::chrono::system_clock::now();
     __float128 minangle = MMM_2_PI;
     for (int i = 0; i < 29*24*60; ++i) {
@@ -71,11 +71,12 @@ auto minFinder = [](JPLEphems &ephems, std::chrono::system_clock::time_point &t,
         if (argabs < minangle) {
             minangle = argabs;
             mintp = t;
-        } else if (argabs > MMM_PI/4.0q && minangle < 0.0001) {
+        } else if (argabs > MMM_PI/4.0q && minangle < MMM_PI/8.0q) {
             break;
         }
     }
     std::cout << "minangle (newmoon) " << static_cast<long double>(minangle) << " at mintp " << mintp << std::endl;
+    return mintp;
 };
 
 int main(int argc, char *argv[]) {
@@ -93,9 +94,9 @@ int main(int argc, char *argv[]) {
     jd_clock::time_point jd = jd_clock::now();
     jd -= jd_clock::duration(15.0);
 
-    std::cout << "hello newmoon " << t << " JD = " << jd << std::endl;
+    //std::cout << "hello newmoon " << t << " JD = " << jd << std::endl;
 
-    timespec ts = {5,0}; //5.000000000s
+    timespec ts = {0,100000000}; //5.000000000s
     try {
         ephems.init("ephem/lnxm13000p17000.431");
     } catch (const std::exception &ex0) {
@@ -116,10 +117,10 @@ int main(int argc, char *argv[]) {
 
     // generate newmoons every ts seconds forever
     for (;;) {
-        minFinder(ephems, t, jd, moonSunAngle);
+        std::chrono::system_clock::time_point tp = minFinder(ephems, t, jd, moonSunAngle);
+        std::cout << "\"new moon (ISO8601)\"" << '"' << tp << '"' << std::endl;
         nanosleep(&ts, nullptr);
     }
 
-    std::cout << "goodbye newmoon" << std::endl;
     return 0;
 }

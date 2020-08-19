@@ -89,6 +89,11 @@ struct jd_clock : public std::chrono::steady_clock
         return time_point(duration(UNIX_EPOCH_JD + unixtime/SECONDS_PER_JDAY));
     }
 
+    static time_point from_unixtime(std::time_t t) {
+        return time_point(duration(t/jd_clock::SECONDS_PER_JDAY));
+        //return time_point(duration(jd_clock::UNIX_EPOCH_JD + t/jd_clock::SECONDS_PER_JDAY));
+    }
+
     struct YearDT {
         double year;
         double dt;
