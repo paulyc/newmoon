@@ -23,6 +23,9 @@
 #include "ephemshelper.hpp"
 
 #include <iostream>
+#include <functional>
+
+typedef std::function<__float128(JPLEphems&, const jd_clock::time_point&)> f_type;
 
 int run()
 {
@@ -33,7 +36,9 @@ int run()
     tzset();
 
     std::chrono::system_clock::time_point t = std::chrono::system_clock::now();
+    t -= std::chrono::seconds(15*86400);
     jd_clock::time_point jd = jd_clock::now();
+    jd -= jd_clock::duration(15.0);
 
     std::cout << "hello newmoon " << t << " JD = " << jd << std::endl;
 
@@ -56,29 +61,26 @@ int run()
         }
     }
 
-	auto newway = [&ephems, &t, &jd]() {
-		std::chrono::system_clock::time_point mintp = std::chrono::system_clock::now();
-        __float128 minangle = MMM_2_PI;
-		for (int i = 0; i < 29*24*60; ++i) {
-			jd += jd_clock::duration(60.0l/jd_clock::SECONDS_PER_JDAY);
-			t += std::chrono::seconds(60);
-			const double jd_now = static_cast<double>(jd_clock::duration(jd.time_since_epoch()).count());
-            cartesian3dvec moonpos = ephems.get_state(jd_now, JPLEphems::EarthMoonBarycenter, JPLEphems::Moon).position();
-            const __float128 moonR = moonpos.mag();
-            cartesian3dvec sunpos = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Sun).position();
-            const __float128 sunR = sunpos.mag();
-            JPLEphems::NutationState ns = ephems.get_nutations(jd_now);
-            //asinq(moonpos.z() / moonR);
-            const __float128 α_moon = atanq(moonpos.y()/moonpos.x());// asinq(moonpos.y() / (moonR*cosq(δ_moon)));
-            const __float128 δ_moon = atanq(moonpos.z()/(moonpos.y()*sinq(α_moon)));
+    f_type moonSunAngle = [](JPLEphems &ephems, const jd_clock::time_point &jd) -> __float128 {
+        const double jd_now = static_cast<double>(jd_clock::duration(jd.time_since_epoch()).count());
+        cartesian3dvec moonpos = ephems.get_state(jd_now, JPLEphems::EarthMoonBarycenter, JPLEphems::Moon).position();
+        const __float128 moonR = moonpos.mag();
+        cartesian3dvec sunpos = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Sun).position();
+        const __float128 sunR = sunpos.mag();
+        JPLEphems::NutationState ns = ephems.get_nutations(jd_now);
+        const __float128 α_moon = atanq(moonpos.y()/moonpos.x());// asinq(moonpos.y() / (moonR*cosq(δ_moon)));
+        const __float128 δ_moon = atanq(moonpos.z()/(moonpos.y()*sinq(α_moon)));
 
-            const __float128 α_sun = atanq(sunpos.y()/sunpos.x());//asinq(sunpos.y() / (moonR*cosq(δ_sun)));
-            const __float128 δ_sun = atanq(sunpos.z()/(sunpos.y()*sinq(α_sun)));
+        const __float128 α_sun = atanq(sunpos.y()/sunpos.x());//asinq(sunpos.y() / (moonR*cosq(δ_sun)));
+        const __float128 δ_sun = atanq(sunpos.z()/(sunpos.y()*sinq(α_sun)));
 
-            const __float128 Δψ = ns.nutationInLongitude();
-            const __float128 Δɛ = ns.nutationInObliquity();
-#define MATH_IS_HARD 1
-#if !MATH_IS_HARD
+        const __float128 Δψ = ns.nutationInLongitude();
+        const __float128 Δɛ = ns.nutationInObliquity();
+        const __float128 arg = moonpos.angle(sunpos);
+        return arg;
+    };
+
+#if 0
             const __float128 ɛ_0 = 0.40904635907; //23.43663 deg in radians
             const __float128 ɛ = ɛ_0;// + Δɛ;
 
@@ -87,20 +89,18 @@ int run()
             const __float128 Δα_sun = (cosq(ɛ)  + sinq(ɛ)*sinq(α_sun)*tanq(δ_sun)) * Δψ - cosq(α_sun)*tan(δ_sun)*Δɛ;
             const __float128 Δδ_sun = cosq(α_sun)*sinq(ɛ)*Δψ + sinq(α_sun)*Δɛ;
             const __float128 arg = (α_moon - Δα_moon) - (α_sun - Δα_sun);
-            //if (fabsq(arg) < 0.0000000001) {
-            //    break;
-            //}
-#else
-
-           // yeah i have no clue but one of these angles might have something to do with phase
-#define USE_THE_LIBRATION 0
-#if USE_THE_LIBRATION
             JPLEphems::State ls = ephems.get_librations(jd_now);
+#endif
 
-#endif
+	auto minFinder = [&ephems, &t, &jd](f_type moonSunAngle) {
+		std::chrono::system_clock::time_point mintp = std::chrono::system_clock::now();
+        __float128 minangle = MMM_2_PI;
+		for (int i = 0; i < 29*24*60; ++i) {
+			jd += jd_clock::duration(60.0l/jd_clock::SECONDS_PER_JDAY);
+			t += std::chrono::seconds(60);
+
             //works better than using RAs and nutations anyway! go figure
-            const __float128 arg = moonpos.angle(sunpos);
-#endif
+            const __float128 arg = moonSunAngle(ephems, jd);
             const __float128 argabs = fabsq(arg);
 			if (argabs < minangle) {
 				minangle = argabs;
@@ -112,44 +112,9 @@ int run()
         std::cout << "minangle (newmoon) " << static_cast<long double>(minangle) << " at mintp " << mintp << std::endl;
 	};
 
-	auto oldway = [&ephems, &t, &jd]() {
-		std::chrono::system_clock::time_point mintp = std::chrono::system_clock::now();
-        __float128 minangle = MMM_2_PI;
-		// just find the time when its the minimum
-        __float128 lastmags[2] = {-3.0q};
-        size_t lastmag_indx = 0;
-		__float128 minmag = 3.0q;
-        for (int i = 0; i < 29*24*60; ++i) {
-            jd += jd_clock::duration(60.0l/jd_clock::SECONDS_PER_JDAY);
-            t += std::chrono::seconds(60);
-            const double jd_now = static_cast<double>(jd_clock::duration(jd.time_since_epoch()).count());
-            const cartesian3dvec sm = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Moon).position();
-            const cartesian3dvec ss = ephems.get_state(jd_now, JPLEphems::Sun, JPLEphems::EarthMoonBarycenter).position();
-            const cartesian3dvec sum = sm.sum(ss);
-            const __float128 mag = sum.mag();
-            const __float128 lastmag = lastmags[lastmag_indx % 2];
-            ++lastmag_indx;
-            lastmags[lastmag_indx % 2] = mag;
-            const __float128 dmag = mag - lastmag;
-            //std::cout << "Magnitude " << magphase[0] << " Angle " << magphase[1] << " at date " << t << std::endl;
-            if (mag < minmag && dmag < 0.0q) {
-                minmag = mag;
-                mintp = t;
-            } else if (mag > 1.0q && minmag < 0.05q && dmag > 0.0q) {
-                break;
-            }
-        }
-        std::cout << "minmag (newmoon) " << static_cast<long double>(minmag) << " at mintp " << mintp << std::endl;
-	};
-
     // generate newmoons every ts seconds forever
     for (;;) {
-#if 1
-		newway();
-#else
-		oldway();
-#endif
-
+		minFinder(moonSunAngle);
         nanosleep(&ts, nullptr);
     }
 
