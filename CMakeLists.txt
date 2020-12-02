@@ -8,11 +8,11 @@ project(newmoon)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
-unset(INSTALL_GTEST)
-add_subdirectory(googletest)
+#unset(INSTALL_GTEST)
+#add_subdirectory(googletest)
 
 include_directories(googletest/include)
-link_directories(googletest/lib)
+#link_directories(googletest/lib)
 
 add_subdirectory(src)
 add_subdirectory(test)

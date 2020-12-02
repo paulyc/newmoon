@@ -42,8 +42,11 @@
 // who knows, maybe some will whole-ass it with all 256, or make a long __float128 later.
 static constexpr __float128 MMM_INVERSE_PI_PI = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p-1q;
 static constexpr __float128 MMM_PI    = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p0q;
-static constexpr __float128 MMM_2_PI  = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p1q;
-static constexpr __float128 MMM_4_PI  = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p2q;
+static constexpr __float128 MMM_PI_2  = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p1q;
+static constexpr __float128 MMM_PI_4  = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p2q;
+
+static constexpr __float128 MMM_2_PI  = 2 * MMM_PI;
+static constexpr __float128 MMM_4_PI  = 4 * MMM_PI;
 
 // T is not necessarily a primitive type!
 template <std::size_t N, typename T=__float128>

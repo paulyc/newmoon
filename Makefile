@@ -11,10 +11,13 @@ googletest/lib/libgtest.a: submodules
 
 googletest: googletest/lib/libgtest.a
 
-build: CMakeLists.txt googletest
-	rm -rf build
+cmake: CMakeLists.txt
 	mkdir -p build
-	cd build && cmake .. && make -j
+	cd build && cmake ..
+
+build: cmake
+	cd build && make -j
+.PHONY: build
 
 build/test/test: build test/*
 build/src/newmoon: build src/*
@@ -29,7 +32,6 @@ test: build/test/test
 
 clean:
 	rm -rf build
-	rm -rf googletest
 .PHONY: clean
 
 buildtest: build test
