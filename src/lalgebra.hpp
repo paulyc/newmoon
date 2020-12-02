@@ -61,13 +61,6 @@ struct Nvec
         *this = T(0);
     }*/
 
-    template<typename U>
-    constexpr Nvec<3, U> (U x, U y, U z) {
-        data[0] = x;
-        data[1] = y;
-        data[2] = z;
-    }
-
     constexpr Nvec(T t) {
         for (std::size_t i = 0; i < N; ++i) {
             this->data[i] = t;
