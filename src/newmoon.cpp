@@ -79,6 +79,14 @@ auto minFinder = [](JPLEphems &ephems, std::chrono::system_clock::time_point &t,
     return mintp;
 };
 
+#if CALCULUS_WORKS
+auto minFinder2 = [](JPLEphems &ephems, jd_clock::time_point &jd, f_type moonSunAngle) -> __float128 {
+    double t_begin = jd.time_since_epoch().count();
+    double t_end = t_begin + 29 * 24 * 60 * 60;
+    return github::paulyc::min_x([&ephems, &moonSunAngle](__float128 t) -> __float128 {return moonSunAngle(ephems, jd_clock::from_unixtime(t));}, t_begin, t_end, 1.0).value();
+};
+#endif
+
 int main(int argc, char *argv[]) {
     (void)argc;
     (void)argv;
@@ -94,9 +102,7 @@ int main(int argc, char *argv[]) {
     jd_clock::time_point jd = jd_clock::now();
     jd -= jd_clock::duration(15.0);
 
-    //std::cout << "hello newmoon " << t << " JD = " << jd << std::endl;
-
-    timespec ts = {0,100000000}; //5.000000000s
+    timespec ts = {0,100000000};
     try {
         ephems.init("ephem/lnxm13000p17000.431");
     } catch (const std::exception &ex0) {
@@ -119,6 +125,8 @@ int main(int argc, char *argv[]) {
     for (;;) {
         std::chrono::system_clock::time_point tp = minFinder(ephems, t, jd, moonSunAngle);
         std::cout << "\"new moon (ISO8601)\"" << '"' << tp << '"' << std::endl;
+        jd += jd_clock::duration(25.0);
+        t += std::chrono::seconds(25*86400);
         nanosleep(&ts, nullptr);
     }
 

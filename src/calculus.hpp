@@ -22,7 +22,7 @@
 #define PAULYC_CALCULUS_HPP
 
 #include <functional>
-#include <array>
+#include <optional>
 #include <cstdint>
 #include <cmath>
 
@@ -50,6 +50,25 @@ fun_1d_t d_op(fun_1d_t fun, const __float128 delta=FLT128_EPSILON) {
     return [fun, delta, _2_delta_m1](__float128 x) -> __float128 {
         return _2_delta_m1 * (fun(x+delta) - fun(x-delta));
     };
+}
+
+//2nd derivative
+fun_1d_t d2_op(fun_1d_t fun, const __float128 delta=FLT128_EPSILON) {
+    const __float128 _2_delta_m1 = 0.5q / delta;
+    return d_op(d_op(fun, delta), delta);
+}
+
+std::optional<__float128> min_x(fun_1d_t fun, const __float128 range_min, const __float128 range_max, const __float128 delta=FLT128_EPSILON) {
+    auto d_fun = d_op(fun, delta);
+    auto d2_fun = d_op(fun, delta);
+    // find d_fun zero crossing
+    int d_fun_sign = signbitq(d_fun(range_min));
+    for (__float128 x = range_min; x < range_max; x += delta) {
+        if (d_fun_sign != signbitq(d_fun(x)) && signbitq(d2_fun(x)) > 0) {
+            return x;
+        }
+    }
+    return std::nullopt;
 }
 
 } /* namespace paulyc */
