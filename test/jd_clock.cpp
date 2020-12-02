@@ -1,5 +1,5 @@
 /**
- * part of newmoon, moon phase calculator
+ * lalgebra.cpp tests
  *
  * Copyright (C) 2020 Paul Ciarlo <paul.ciarlo@gmail.com>
  *
@@ -18,15 +18,15 @@
  * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA  02110-1335, USA.
  **/
 
-#include "jd_clock.hpp"
+#include <gtest/gtest.h>
+#include "../src/jd_clock.hpp"
 
-const std::vector<jd_clock::YearDT> jd_clock::DELTA_T_YR = {
-    {-500, 17190},
-    {0, 10580},
-    {500,5710},
-    {1000,1570},
-    {1500,200},
-    {1900,-6.64},
-    {2000,63.83},
-    {2018,68.97}
-};
+namespace {
+
+TEST(jd_clock_test_suite, test_delta_t_lerp) {
+    EXPECT_TRUE(jd_clock::delta_t_lerp(-700) > 17190);
+    EXPECT_TRUE(jd_clock::delta_t_lerp(1250) > 200 && jd_clock::delta_t_lerp(1250) < 1570);
+    EXPECT_TRUE(jd_clock::delta_t_lerp(2030) > 68.97);
+}
+
+}

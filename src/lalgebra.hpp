@@ -1,5 +1,5 @@
 /**
- * part of newmoon, moon phase calculator
+ * lalgebra.hpp
  *
  * Copyright (C) 2020 Paul Ciarlo <paul.ciarlo@gmail.com>
  *

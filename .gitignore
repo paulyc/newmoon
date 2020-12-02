@@ -35,3 +35,4 @@ xcodebuild
 build
 ephem
 CMakeLists.txt.user
+.vscode

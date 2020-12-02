@@ -94,26 +94,31 @@ struct jd_clock : public std::chrono::steady_clock
         double dt;
     };
 
-    static const std::vector<YearDT> DELTA_T_YR;
+    static constexpr jd_clock::YearDT DELTA_T_YR[] = {
+        {-500, 17190},
+        {0, 10580},
+        {500,5710},
+        {1000,1570},
+        {1500,200},
+        {1900,-6.64},
+        {2000,63.83},
+        {2018,68.97}
+    };
 
+    // probably broken
     static double delta_t_lerp(double year) {
         size_t point = 1;
-        while (point < jd_clock::DELTA_T_YR.size() - 1 && year > jd_clock::DELTA_T_YR[point].year) {
+        while (point < sizeof(DELTA_T_YR) - 1 && year > DELTA_T_YR[point].year) {
             ++point;
         }
         //std::cerr << "year " << year << std::endl;
-        const double slope = (jd_clock::DELTA_T_YR[point].dt - jd_clock::DELTA_T_YR[point-1].dt) / (jd_clock::DELTA_T_YR[point].year - jd_clock::DELTA_T_YR[point-1].year);
+        const double slope = (DELTA_T_YR[point].dt - DELTA_T_YR[point-1].dt) / (DELTA_T_YR[point].year - DELTA_T_YR[point-1].year);
         //std::cerr << "slope " << slope << std::endl;
-        const double dy = jd_clock::DELTA_T_YR[point].year - year;
+        const double dy = DELTA_T_YR[point].year - year;
         //std::cerr << "dy " << dy << std::endl;
-        const double dt = jd_clock::DELTA_T_YR[point].dt - dy * slope;
+        const double dt = DELTA_T_YR[point].dt - dy * slope;
         //std::cerr << "dt " << dt << std::endl;
         return dt;
-    }
-    static void test_delta_t_lerp() {
-        assert(delta_t_lerp(-700) > 17190);
-        assert(delta_t_lerp(1250) > 200 && delta_t_lerp(1250) < 1570);
-        assert(delta_t_lerp(2030) > 68.97);
     }
 };
 

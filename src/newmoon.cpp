@@ -19,6 +19,7 @@
  **/
 
 #include "lalgebra.hpp"
+#include "calculus.hpp"
 #include "jd_clock.hpp"
 #include "ephemshelper.hpp"
 
@@ -27,8 +28,60 @@
 
 typedef std::function<__float128(JPLEphems&, const jd_clock::time_point&)> f_type;
 
-int run()
-{
+f_type moonSunAngle = [](JPLEphems &ephems, const jd_clock::time_point &jd) -> __float128 {
+    const double jd_now = static_cast<double>(jd_clock::duration(jd.time_since_epoch()).count());
+    cartesian3dvec moonpos = ephems.get_state(jd_now, JPLEphems::EarthMoonBarycenter, JPLEphems::Moon).position();
+    const __float128 moonR = moonpos.mag();
+    cartesian3dvec sunpos = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Sun).position();
+    const __float128 sunR = sunpos.mag();
+    JPLEphems::NutationState ns = ephems.get_nutations(jd_now);
+    const __float128 α_moon = atanq(moonpos.y()/moonpos.x());// asinq(moonpos.y() / (moonR*cosq(δ_moon)));
+    const __float128 δ_moon = atanq(moonpos.z()/(moonpos.y()*sinq(α_moon)));
+
+    const __float128 α_sun = atanq(sunpos.y()/sunpos.x());//asinq(sunpos.y() / (moonR*cosq(δ_sun)));
+    const __float128 δ_sun = atanq(sunpos.z()/(sunpos.y()*sinq(α_sun)));
+
+    const __float128 Δψ = ns.nutationInLongitude();
+    const __float128 Δɛ = ns.nutationInObliquity();
+    const __float128 arg = moonpos.angle(sunpos);
+#if 1
+    return arg;
+#else
+    const __float128 ɛ_0 = 0.40904635907; //23.43663 deg in radians
+    const __float128 ɛ = ɛ_0;// + Δɛ;
+
+    const __float128 Δα_moon = (cosq(ɛ)  + sinq(ɛ)*sinq(α_moon)*tanq(δ_moon)) * Δψ - cosq(α_moon)*tan(δ_moon)*Δɛ;
+    const __float128 Δδ_moon = cosq(α_moon)*sinq(ɛ)*Δψ + sinq(α_moon)*Δɛ;
+    const __float128 Δα_sun = (cosq(ɛ)  + sinq(ɛ)*sinq(α_sun)*tanq(δ_sun)) * Δψ - cosq(α_sun)*tan(δ_sun)*Δɛ;
+    const __float128 Δδ_sun = cosq(α_sun)*sinq(ɛ)*Δψ + sinq(α_sun)*Δɛ;
+    const __float128 arg = (α_moon - Δα_moon) - (α_sun - Δα_sun);
+    JPLEphems::State ls = ephems.get_librations(jd_now);
+#endif
+};
+
+auto minFinder = [](JPLEphems &ephems, std::chrono::system_clock::time_point &t, jd_clock::time_point &jd, f_type moonSunAngle) {
+    std::chrono::system_clock::time_point mintp = std::chrono::system_clock::now();
+    __float128 minangle = MMM_2_PI;
+    for (int i = 0; i < 29*24*60; ++i) {
+        jd += jd_clock::duration(60.0l/jd_clock::SECONDS_PER_JDAY);
+        t += std::chrono::seconds(60);
+
+        const __float128 arg = moonSunAngle(ephems, jd);
+        const __float128 argabs = fabsq(arg);
+        if (argabs < minangle) {
+            minangle = argabs;
+            mintp = t;
+        } else if (argabs > MMM_PI/4.0q && minangle < 0.0001) {
+            break;
+        }
+    }
+    std::cout << "minangle (newmoon) " << static_cast<long double>(minangle) << " at mintp " << mintp << std::endl;
+};
+
+int main(int argc, char *argv[]) {
+    (void)argc;
+    (void)argv;
+    
     JPLEphems ephems;
 
     char tzbuf[] = "TZ=UTC";
@@ -61,77 +114,12 @@ int run()
         }
     }
 
-    f_type moonSunAngle = [](JPLEphems &ephems, const jd_clock::time_point &jd) -> __float128 {
-        const double jd_now = static_cast<double>(jd_clock::duration(jd.time_since_epoch()).count());
-        cartesian3dvec moonpos = ephems.get_state(jd_now, JPLEphems::EarthMoonBarycenter, JPLEphems::Moon).position();
-        const __float128 moonR = moonpos.mag();
-        cartesian3dvec sunpos = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Sun).position();
-        const __float128 sunR = sunpos.mag();
-        JPLEphems::NutationState ns = ephems.get_nutations(jd_now);
-        const __float128 α_moon = atanq(moonpos.y()/moonpos.x());// asinq(moonpos.y() / (moonR*cosq(δ_moon)));
-        const __float128 δ_moon = atanq(moonpos.z()/(moonpos.y()*sinq(α_moon)));
-
-        const __float128 α_sun = atanq(sunpos.y()/sunpos.x());//asinq(sunpos.y() / (moonR*cosq(δ_sun)));
-        const __float128 δ_sun = atanq(sunpos.z()/(sunpos.y()*sinq(α_sun)));
-
-        const __float128 Δψ = ns.nutationInLongitude();
-        const __float128 Δɛ = ns.nutationInObliquity();
-        const __float128 arg = moonpos.angle(sunpos);
-        return arg;
-    };
-
-#if 0
-            const __float128 ɛ_0 = 0.40904635907; //23.43663 deg in radians
-            const __float128 ɛ = ɛ_0;// + Δɛ;
-
-            const __float128 Δα_moon = (cosq(ɛ)  + sinq(ɛ)*sinq(α_moon)*tanq(δ_moon)) * Δψ - cosq(α_moon)*tan(δ_moon)*Δɛ;
-            const __float128 Δδ_moon = cosq(α_moon)*sinq(ɛ)*Δψ + sinq(α_moon)*Δɛ;
-            const __float128 Δα_sun = (cosq(ɛ)  + sinq(ɛ)*sinq(α_sun)*tanq(δ_sun)) * Δψ - cosq(α_sun)*tan(δ_sun)*Δɛ;
-            const __float128 Δδ_sun = cosq(α_sun)*sinq(ɛ)*Δψ + sinq(α_sun)*Δɛ;
-            const __float128 arg = (α_moon - Δα_moon) - (α_sun - Δα_sun);
-            JPLEphems::State ls = ephems.get_librations(jd_now);
-#endif
-
-	auto minFinder = [&ephems, &t, &jd](f_type moonSunAngle) {
-		std::chrono::system_clock::time_point mintp = std::chrono::system_clock::now();
-        __float128 minangle = MMM_2_PI;
-		for (int i = 0; i < 29*24*60; ++i) {
-			jd += jd_clock::duration(60.0l/jd_clock::SECONDS_PER_JDAY);
-			t += std::chrono::seconds(60);
-
-            //works better than using RAs and nutations anyway! go figure
-            const __float128 arg = moonSunAngle(ephems, jd);
-            const __float128 argabs = fabsq(arg);
-			if (argabs < minangle) {
-				minangle = argabs;
-				mintp = t;
-            } else if (argabs > MMM_PI/4.0q && minangle < 0.0001) {
-				break;
-            }
-		}
-        std::cout << "minangle (newmoon) " << static_cast<long double>(minangle) << " at mintp " << mintp << std::endl;
-	};
-
     // generate newmoons every ts seconds forever
     for (;;) {
-		minFinder(moonSunAngle);
+        minFinder(ephems, t, jd, moonSunAngle);
         nanosleep(&ts, nullptr);
     }
 
     std::cout << "goodbye newmoon" << std::endl;
     return 0;
-}
-
-int test() {
-    jd_clock::test_delta_t_lerp();
-    auto jd = jd_clock::now();
-    std::cerr << jd << std::endl;
-    std::cerr << jd.time_since_epoch().count() << std::endl;
-    const double jd_now = static_cast<double>(jd_clock::duration(jd.time_since_epoch()).count());
-    std::cerr << jd_now << std::endl;
-    return 0;
-}
-
-int main() {
-    return test() || run();
 }
