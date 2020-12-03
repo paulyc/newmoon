@@ -23,11 +23,11 @@
 
 namespace {
 
-static constexpr __float128 fuzzy_delta = 0.00001q;
+static constexpr long double fuzzy_delta = 0.00001q;
 
 template <typename T>
 bool fuzzy_eq(T x, T y) {
-    const __float128 delta = fuzzy_delta;
+    const long double delta = fuzzy_delta;
     if (fabsq(x - y) > delta) {
         std:: cerr << "fuzzy eq returning false on " << static_cast<long double>(x) <<
                       " diff " << static_cast<long double>(y) << " > " << static_cast<long double>(delta) << std::endl;
@@ -38,7 +38,7 @@ bool fuzzy_eq(T x, T y) {
 }
 
 bool fuzzy_eq(const Nvec<3> &u, const Nvec<3> &v) {
-    const __float128 delta = 0.00001q;
+    const long double delta = 0.00001q;
     for (std::size_t i = 0; i < 3; ++i) {
         if (fabsq(u.data[i] - v.data[i]) > delta) {
             std::cerr << "fuzzy eq returning false on " << static_cast<long double>(u.data[i]) <<
@@ -82,22 +82,22 @@ TEST_F(NvecTestFixture, TestAddAcc) {
 }
 
 TEST_F(NvecTestFixture, TestDotP) {
-    __float128 dotP = u.dotP(v);
+    long double dotP = u.dotP(v);
     EXPECT_TRUE(fuzzy_eq(dotP, 4.0q + 10.0q + 18.0q));
 }
 
 TEST_F(NvecTestFixture, TestSelfDotP) {
-    __float128 dotP = u.dotP(u);
+    long double dotP = u.dotP(u);
     EXPECT_TRUE(fuzzy_eq(dotP, 1.0q + 4.0q + 9.0q));
 }
 
 TEST_F(NvecTestFixture, TestMag) {
-    __float128 mag = w.mag();
+    long double mag = w.mag();
     EXPECT_TRUE(fuzzy_eq(mag, sqrtq(MMM_PI*MMM_PI + MMM_PI*MMM_PI + MMM_PI*MMM_PI)));
 }
 
 TEST_F(NvecTestFixture, TestZeroVec) {
-    EXPECT_TRUE(fuzzy_eq(TheZeroVector<__float128>.dotP(TheZeroVector<__float128>), 0.0q));
+    EXPECT_TRUE(fuzzy_eq(TheZeroVector<long double>.dotP(TheZeroVector<long double>), 0.0q));
 }
 
 class NxMmatrixTestFixture : public testing::Test
@@ -122,9 +122,9 @@ TEST_F(NxMmatrixTestFixture, TestVecMul) {
     });
     Nvec<3> u({1.0q, 2.0q, 3.0q});
     Nvec<3> v = m.mul(u);
-    __float128 dotP0 = m.row(0).dotP(u);
-    __float128 dotP1 = m.row(1).dotP(u);
-    __float128 dotP2 = m.row(2).dotP(u);
+    long double dotP0 = m.row(0).dotP(u);
+    long double dotP1 = m.row(1).dotP(u);
+    long double dotP2 = m.row(2).dotP(u);
     EXPECT_TRUE(fuzzy_eq(dotP0, 1.0q+4.0q+9.0q));
     EXPECT_TRUE(fuzzy_eq(dotP1, 4.0q+10.0q+18.0q));
     EXPECT_TRUE(fuzzy_eq(dotP2, 7.0q+16.0q+27.0q));

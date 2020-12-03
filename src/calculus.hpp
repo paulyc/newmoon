@@ -32,38 +32,38 @@
 namespace github {
 namespace paulyc {
 
-typedef std::function<__float128(__float128)> fun_1d_t;
-typedef std::function<__float128(__float128, __float128)> fun_2d_t;
-typedef std::function<__float128(__float128, __float128, __float128)> fun_3d_t;
-typedef std::function<__float128(__float128, __float128, __float128, __float128)> fun_4d_t;
+typedef std::function<long double(long double)> fun_1d_t;
+typedef std::function<long double(long double, long double)> fun_2d_t;
+typedef std::function<long double(long double, long double, long double)> fun_3d_t;
+typedef std::function<long double(long double, long double, long double, long double)> fun_4d_t;
 
 // identity
-fun_1d_t id_op(fun_1d_t fun, const __float128 delta=FLT128_EPSILON) {
-    return [fun, delta](__float128 x) -> __float128 {
+fun_1d_t id_op(fun_1d_t fun, const long double delta=FLT128_EPSILON) {
+    return [fun, delta](long double x) -> long double {
         return fun(x);
     };
 }
 
 //derivative
-fun_1d_t d_op(fun_1d_t fun, const __float128 delta=FLT128_EPSILON) {
-    const __float128 _2_delta_m1 = 0.5q / delta;
-    return [fun, delta, _2_delta_m1](__float128 x) -> __float128 {
+fun_1d_t d_op(fun_1d_t fun, const long double delta=FLT128_EPSILON) {
+    const long double _2_delta_m1 = 0.5q / delta;
+    return [fun, delta, _2_delta_m1](long double x) -> long double {
         return _2_delta_m1 * (fun(x+delta) - fun(x-delta));
     };
 }
 
 //2nd derivative
-fun_1d_t d2_op(fun_1d_t fun, const __float128 delta=FLT128_EPSILON) {
-    const __float128 _2_delta_m1 = 0.5q / delta;
+fun_1d_t d2_op(fun_1d_t fun, const long double delta=FLT128_EPSILON) {
+    const long double _2_delta_m1 = 0.5q / delta;
     return d_op(d_op(fun, delta), delta);
 }
 
-std::optional<__float128> min_x(fun_1d_t fun, const __float128 range_min, const __float128 range_max, const __float128 delta=FLT128_EPSILON) {
+std::optional<long double> min_x(fun_1d_t fun, const long double range_min, const long double range_max, const long double delta=FLT128_EPSILON) {
     auto d_fun = d_op(fun, delta);
     auto d2_fun = d_op(fun, delta);
     // find d_fun zero crossing
     int d_fun_sign = signbitq(d_fun(range_min));
-    for (__float128 x = range_min; x < range_max; x += delta) {
+    for (long double x = range_min; x < range_max; x += delta) {
         if (d_fun_sign != signbitq(d_fun(x)) && signbitq(d2_fun(x)) > 0) {
             return x;
         }

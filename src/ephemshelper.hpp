@@ -56,30 +56,30 @@ public:
     {
         double pv[6];
         cartesian3dvec position() const {
-            return {{static_cast<__float128>(pv[0]), static_cast<__float128>(pv[1]), static_cast<__float128>(pv[2])}};
+            return {{static_cast<long double>(pv[0]), static_cast<long double>(pv[1]), static_cast<long double>(pv[2])}};
         }
         cartesian3dvec velocity() const {
-            return {{static_cast<__float128>(pv[3]), static_cast<__float128>(pv[4]), static_cast<__float128>(pv[5])}};
+            return {{static_cast<long double>(pv[3]), static_cast<long double>(pv[4]), static_cast<long double>(pv[5])}};
         }
     };
     struct NutationState
     {
         double pv[6];
         //radians - delta psi
-        __float128 nutationInLongitude() const {
-            return static_cast<__float128>(pv[0]);
+        long double nutationInLongitude() const {
+            return static_cast<long double>(pv[0]);
         }
         //radians - delta epsilon
-        __float128 nutationInObliquity() const {
-            return static_cast<__float128>(pv[1]);
+        long double nutationInObliquity() const {
+            return static_cast<long double>(pv[1]);
         }
         //radians/day
-        __float128 nutationInLongitudeRate() const {
-            return static_cast<__float128>(pv[2]);
+        long double nutationInLongitudeRate() const {
+            return static_cast<long double>(pv[2]);
         }
         //radians/day
-        __float128 nutationInObliquityRate() const {
-            return static_cast<__float128>(pv[3]);
+        long double nutationInObliquityRate() const {
+            return static_cast<long double>(pv[3]);
         }
     };
     JPLEphems() : _ephdata(nullptr) {}
@@ -140,7 +140,7 @@ public:
 
     ± 66° 33' 48.485"  =  ± 66.5634680877°
 
-    static __float128 obliquity_of_ecliptic(double jd2000)
+    static long double obliquity_of_ecliptic(double jd2000)
     {
         return 23.4393 - 3.563E-7 * jd2000;
     }

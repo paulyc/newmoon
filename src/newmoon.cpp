@@ -26,48 +26,48 @@
 #include <iostream>
 #include <functional>
 
-typedef std::function<__float128(JPLEphems&, const jd_clock::time_point&)> f_type;
+typedef std::function<long double(JPLEphems&, const jd_clock::time_point&)> f_type;
 
-f_type moonSunAngle = [](JPLEphems &ephems, const jd_clock::time_point &jd) -> __float128 {
+f_type moonSunAngle = [](JPLEphems &ephems, const jd_clock::time_point &jd) -> long double {
     const double jd_now = static_cast<double>(jd_clock::duration(jd.time_since_epoch()).count());
     cartesian3dvec moonpos = ephems.get_state(jd_now, JPLEphems::EarthMoonBarycenter, JPLEphems::Moon).position();
-    const __float128 moonR = moonpos.mag();
+    const long double moonR = moonpos.mag();
     cartesian3dvec sunpos = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Sun).position();
-    const __float128 sunR = sunpos.mag();
+    const long double sunR = sunpos.mag();
     JPLEphems::NutationState ns = ephems.get_nutations(jd_now);
-    const __float128 α_moon = atanq(moonpos.y()/moonpos.x());// asinq(moonpos.y() / (moonR*cosq(δ_moon)));
-    const __float128 δ_moon = atanq(moonpos.z()/(moonpos.y()*sinq(α_moon)));
+    const long double α_moon = atanq(moonpos.y()/moonpos.x());// asinq(moonpos.y() / (moonR*cosq(δ_moon)));
+    const long double δ_moon = atanq(moonpos.z()/(moonpos.y()*sinq(α_moon)));
 
-    const __float128 α_sun = atanq(sunpos.y()/sunpos.x());//asinq(sunpos.y() / (moonR*cosq(δ_sun)));
-    const __float128 δ_sun = atanq(sunpos.z()/(sunpos.y()*sinq(α_sun)));
+    const long double α_sun = atanq(sunpos.y()/sunpos.x());//asinq(sunpos.y() / (moonR*cosq(δ_sun)));
+    const long double δ_sun = atanq(sunpos.z()/(sunpos.y()*sinq(α_sun)));
 
-    const __float128 Δψ = ns.nutationInLongitude();
-    const __float128 Δɛ = ns.nutationInObliquity();
-    const __float128 arg = moonpos.angle(sunpos);
+    const long double Δψ = ns.nutationInLongitude();
+    const long double Δɛ = ns.nutationInObliquity();
+    const long double arg = moonpos.angle(sunpos);
 #if 1
     return arg;
 #else
-    const __float128 ɛ_0 = 0.40904635907; //23.43663 deg in radians
-    const __float128 ɛ = ɛ_0;// + Δɛ;
+    const long double ɛ_0 = 0.40904635907; //23.43663 deg in radians
+    const long double ɛ = ɛ_0;// + Δɛ;
 
-    const __float128 Δα_moon = (cosq(ɛ)  + sinq(ɛ)*sinq(α_moon)*tanq(δ_moon)) * Δψ - cosq(α_moon)*tan(δ_moon)*Δɛ;
-    const __float128 Δδ_moon = cosq(α_moon)*sinq(ɛ)*Δψ + sinq(α_moon)*Δɛ;
-    const __float128 Δα_sun = (cosq(ɛ)  + sinq(ɛ)*sinq(α_sun)*tanq(δ_sun)) * Δψ - cosq(α_sun)*tan(δ_sun)*Δɛ;
-    const __float128 Δδ_sun = cosq(α_sun)*sinq(ɛ)*Δψ + sinq(α_sun)*Δɛ;
-    const __float128 arg = (α_moon - Δα_moon) - (α_sun - Δα_sun);
+    const long double Δα_moon = (cosq(ɛ)  + sinq(ɛ)*sinq(α_moon)*tanq(δ_moon)) * Δψ - cosq(α_moon)*tan(δ_moon)*Δɛ;
+    const long double Δδ_moon = cosq(α_moon)*sinq(ɛ)*Δψ + sinq(α_moon)*Δɛ;
+    const long double Δα_sun = (cosq(ɛ)  + sinq(ɛ)*sinq(α_sun)*tanq(δ_sun)) * Δψ - cosq(α_sun)*tan(δ_sun)*Δɛ;
+    const long double Δδ_sun = cosq(α_sun)*sinq(ɛ)*Δψ + sinq(α_sun)*Δɛ;
+    const long double arg = (α_moon - Δα_moon) - (α_sun - Δα_sun);
     JPLEphems::State ls = ephems.get_librations(jd_now);
 #endif
 };
 
 auto minFinder = [](JPLEphems &ephems, std::chrono::system_clock::time_point &t, jd_clock::time_point &jd, f_type moonSunAngle) -> std::chrono::system_clock::time_point {
     std::chrono::system_clock::time_point mintp = std::chrono::system_clock::now();
-    __float128 minangle = MMM_2_PI;
+    long double minangle = MMM_2_PI;
     for (int i = 0; i < 29*24*60; ++i) {
         jd += jd_clock::duration(60.0l/jd_clock::SECONDS_PER_JDAY);
         t += std::chrono::seconds(60);
 
-        const __float128 arg = moonSunAngle(ephems, jd);
-        const __float128 argabs = fabsq(arg);
+        const long double arg = moonSunAngle(ephems, jd);
+        const long double argabs = fabsq(arg);
         if (argabs < minangle) {
             minangle = argabs;
             mintp = t;
@@ -80,10 +80,10 @@ auto minFinder = [](JPLEphems &ephems, std::chrono::system_clock::time_point &t,
 };
 
 #if CALCULUS_WORKS
-auto minFinder2 = [](JPLEphems &ephems, jd_clock::time_point &jd, f_type moonSunAngle) -> __float128 {
+auto minFinder2 = [](JPLEphems &ephems, jd_clock::time_point &jd, f_type moonSunAngle) -> long double {
     double t_begin = jd.time_since_epoch().count();
     double t_end = t_begin + 29 * 24 * 60 * 60;
-    return github::paulyc::min_x([&ephems, &moonSunAngle](__float128 t) -> __float128 {return moonSunAngle(ephems, jd_clock::from_unixtime(t));}, t_begin, t_end, 1.0).value();
+    return github::paulyc::min_x([&ephems, &moonSunAngle](long double t) -> long double {return moonSunAngle(ephems, jd_clock::from_unixtime(t));}, t_begin, t_end, 1.0).value();
 };
 #endif
 
