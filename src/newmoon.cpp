@@ -28,7 +28,7 @@
 
 typedef std::function<long double(JPLEphems&, const jd_clock::time_point&)> f_type;
 
-f_type moonSunAngle = [](JPLEphems &ephems, const jd_clock::time_point &jd) -> long double {
+long double moonSunAngle(JPLEphems &ephems, const jd_clock::time_point &jd) {
     const double jd_now = static_cast<double>(jd_clock::duration(jd.time_since_epoch()).count());
     cartesian3dvec moonpos = ephems.get_state(jd_now, JPLEphems::EarthMoonBarycenter, JPLEphems::Moon).position();
     const long double moonR = moonpos.mag();
@@ -59,23 +59,22 @@ f_type moonSunAngle = [](JPLEphems &ephems, const jd_clock::time_point &jd) -> l
 #endif
 };
 
-auto minFinder = [](JPLEphems &ephems, std::chrono::system_clock::time_point &t, jd_clock::time_point &jd, f_type moonSunAngle) -> std::chrono::system_clock::time_point {
+std::chrono::system_clock::time_point minFinder(JPLEphems &ephems, jd_clock::time_point &jd) {
     std::chrono::system_clock::time_point mintp = std::chrono::system_clock::now();
     long double minangle = MMM_2_PI;
     for (int i = 0; i < 29*24*60; ++i) {
         jd += jd_clock::duration(60.0l/jd_clock::SECONDS_PER_JDAY);
-        t += std::chrono::seconds(60);
 
         const long double arg = moonSunAngle(ephems, jd);
         const long double argabs = fabsq(arg);
         if (argabs < minangle) {
             minangle = argabs;
-            mintp = t;
+            mintp = jd_clock::to_system_clock(jd);
         } else if (argabs > MMM_PI/4.0q && minangle < MMM_PI/8.0q) {
             break;
         }
     }
-    std::cout << "minangle (newmoon) " << static_cast<long double>(minangle) << " at mintp " << mintp << std::endl;
+    std::cout << "minangle (newmoon) " << minangle << " at mintp " << mintp << std::endl;
     return mintp;
 };
 
@@ -97,10 +96,8 @@ int main(int argc, char *argv[]) {
     putenv(tzbuf);
     tzset();
 
-    std::chrono::system_clock::time_point t = std::chrono::system_clock::now();
-    t -= std::chrono::seconds(15*86400);
     jd_clock::time_point jd = jd_clock::now();
-    jd -= jd_clock::duration(15.0);
+    jd -= jd_clock::duration(28.0);
 
     timespec ts = {0,100000000};
     try {
@@ -123,10 +120,9 @@ int main(int argc, char *argv[]) {
 
     // generate newmoons every ts seconds forever
     for (;;) {
-        std::chrono::system_clock::time_point tp = minFinder(ephems, t, jd, moonSunAngle);
+        std::chrono::system_clock::time_point tp = minFinder(ephems, jd);
         std::cout << "\"new moon (ISO8601)\"" << '"' << tp << '"' << std::endl;
         jd += jd_clock::duration(25.0);
-        t += std::chrono::seconds(25*86400);
         nanosleep(&ts, nullptr);
     }
 

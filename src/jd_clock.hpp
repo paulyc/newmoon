@@ -31,12 +31,12 @@
 #include <iomanip>
 #include <cstring>
 
-struct jd_clock : public std::chrono::steady_clock
+struct jd_clock
 {
-    typedef std::chrono::duration<long double, std::ratio<1,86400>> duration;
-    typedef duration::rep                                 rep;
-    typedef duration::period                              period;
-    typedef std::chrono::time_point<jd_clock, duration> 	time_point;
+    typedef long double                         rep;
+    typedef std::ratio<86400>                   period;
+    typedef std::chrono::duration<rep, period>  duration;
+    typedef std::chrono::time_point<jd_clock>   time_point;
 
     /*
      * delta-T =
@@ -71,6 +71,22 @@ struct jd_clock : public std::chrono::steady_clock
     static constexpr bool is_steady = true;
     static constexpr long double SECONDS_PER_JDAY = 86400.0l;
     static constexpr long double JDAYS_PER_YEAR = 365.25l;
+/*
+    static constexpr std::time_t jd2000_unixtime() {
+        std::tm tm_jd2000 = {
+                .tm_sec = 56,
+                .tm_min = 58,
+                .tm_hour = 23,
+                .tm_mday = 1,
+                .tm_mon = 0,
+                .tm_year = 2000,
+                .tm_isdst = 0,
+                .tm_gmtoff = 0,
+                .tm_zone = "UTC",
+            };
+        return mktime(&tm_jd2000);
+    }
+*/
     static constexpr long double SECONDS_PER_JYEAR = SECONDS_PER_JDAY * JDAYS_PER_YEAR;
     static constexpr long double JD2000_EPOCH_JD = 2451545.0l;
     static constexpr long JD2000_EPOCH_JDS = 211813488000l;
@@ -81,17 +97,23 @@ struct jd_clock : public std::chrono::steady_clock
     static constexpr long double leap_seconds_since_unix_epoch = 27.0l;
 
     static time_point now() noexcept {
-        return from_unixtime(std::chrono::system_clock::now());
+        return from_time_t(std::chrono::system_clock::now());
     }
 
-    static time_point from_unixtime(const std::chrono::system_clock::time_point &t) {
-        std::time_t unixtime = std::chrono::system_clock::to_time_t(t);
-        return time_point(duration(UNIX_EPOCH_JD + unixtime/SECONDS_PER_JDAY));
+    static time_point from_time_t(const std::chrono::system_clock::time_point &t) {
+        return from_time_t(std::chrono::system_clock::to_time_t(t));
     }
 
-    static time_point from_unixtime(std::time_t t) {
-        return time_point(duration(t/jd_clock::SECONDS_PER_JDAY));
-        //return time_point(duration(jd_clock::UNIX_EPOCH_JD + t/jd_clock::SECONDS_PER_JDAY));
+    static time_point from_time_t(std::time_t t) {
+        return time_point(duration(UNIX_EPOCH_JD + t/jd_clock::SECONDS_PER_JDAY));
+    }
+
+    static std::time_t to_time_t(jd_clock::time_point &jd) {
+        return static_cast<std::time_t>((jd.time_since_epoch().count() - UNIX_EPOCH_JD) * SECONDS_PER_JDAY);
+    }
+
+    static std::chrono::system_clock::time_point to_system_clock(jd_clock::time_point &jd) {
+        return std::chrono::system_clock::from_time_t(to_time_t(jd));
     }
 
     struct YearDT {
