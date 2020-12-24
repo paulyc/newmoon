@@ -36,3 +36,4 @@ build
 ephem
 CMakeLists.txt.user
 .vscode
+*.code-workspace
