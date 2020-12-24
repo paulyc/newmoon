@@ -1,19 +1,24 @@
+
+CMAKE := cmake
+CMAKE_CMD := $(CMAKE) -DCMAKE_C_COMPILER=/usr/local/bin/gcc-10 -DCMAKE_CXX_COMPILER=/usr/local/bin/g++-10
+ROOT := $(PWD)
+
 _: all
 
 all: build
 
-submodules:
+submodules: googletest
 	git submodule update --init
-.PHONY: submodules
 
-googletest/lib/libgtest.a: submodules
-	cd googletest && cmake . && make -j
+lib/libgtest.a: submodules
+	cd googletest && rm -rf build && mkdir build && cd build && $(CMAKE_CMD) -DCMAKE_INSTALL_PREFIX=$(ROOT) .. && make -j install
 
-googletest: googletest/lib/libgtest.a
+googletest: lib/libgtest.a
 
-cmake: CMakeLists.txt
+cmake: googletest CMakeLists.txt
 	mkdir -p build
-	cd build && cmake ..
+	cd build && $(CMAKE_CMD) ..
+.PHONY: cmake
 
 build: cmake
 	cd build && make -j
@@ -32,6 +37,7 @@ test: build/test/test
 
 clean:
 	rm -rf build
+	make -C googletest clean
 .PHONY: clean
 
 buildtest: build test
