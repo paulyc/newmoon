@@ -38,38 +38,15 @@ typedef std::function<long double(long double, long double, long double)> fun_3d
 typedef std::function<long double(long double, long double, long double, long double)> fun_4d_t;
 
 // identity
-fun_1d_t id_op(fun_1d_t fun, const long double delta=FLT128_EPSILON) {
-    return [fun, delta](long double x) -> long double {
-        return fun(x);
-    };
-}
+fun_1d_t id_op(fun_1d_t fun, const long double delta);
 
 //derivative
-fun_1d_t d_op(fun_1d_t fun, const long double delta=FLT128_EPSILON) {
-    const long double _2_delta_m1 = 0.5q / delta;
-    return [fun, delta, _2_delta_m1](long double x) -> long double {
-        return _2_delta_m1 * (fun(x+delta) - fun(x-delta));
-    };
-}
+fun_1d_t d_op(fun_1d_t fun, const long double delta);
 
 //2nd derivative
-fun_1d_t d2_op(fun_1d_t fun, const long double delta=FLT128_EPSILON) {
-    const long double _2_delta_m1 = 0.5q / delta;
-    return d_op(d_op(fun, delta), delta);
-}
+fun_1d_t d2_op(fun_1d_t fun, const long double delta);
 
-std::optional<long double> min_x(fun_1d_t fun, const long double range_min, const long double range_max, const long double delta=FLT128_EPSILON) {
-    auto d_fun = d_op(fun, delta);
-    auto d2_fun = d_op(fun, delta);
-    // find d_fun zero crossing
-    int d_fun_sign = signbitq(d_fun(range_min));
-    for (long double x = range_min; x < range_max; x += delta) {
-        if (d_fun_sign != signbitq(d_fun(x)) && signbitq(d2_fun(x)) > 0) {
-            return x;
-        }
-    }
-    return std::nullopt;
-}
+std::optional<long double> min_x(fun_1d_t fun, const long double range_min, const long double range_max, const long double delta);
 
 } /* namespace paulyc */
 } /* namespace github */

@@ -10,8 +10,13 @@ add_executable(newmoon
 	jd_clock.hpp
 	lalgebra.hpp
 	calculus.hpp
+	calculus.cpp
 	ephemshelper.hpp
 	quadmath.h
+	tetrabiblos.hpp
+	tetrabiblos.cpp
+	astro.hpp
+	astro.cpp
 )
 
 target_link_libraries(newmoon -lquadmath)

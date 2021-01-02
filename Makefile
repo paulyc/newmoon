@@ -22,7 +22,7 @@ build: cmake
 build/test/test: build test/*
 build/src/newmoon: build src/*
 
-run: build/src/newmoon
+run: ephem build/src/newmoon
 	build/src/newmoon
 .PHONY: run
 
@@ -41,11 +41,11 @@ cleanconf:
 	rm -rf build
 .PHONY: cleanconf
 
-ephem: ephem/lnxm13000p17000.431
-	mkdir -p ephem
-	cd ephem && wget ftp://ssd.jpl.nasa.gov/pub/eph/planets/Linux/de431/lnxm13000p17000.431
+ephem:
+	make -C ephem
 
 ephem-clean:
-	rm -rf ephem
+	make -C ephem clean
 
 distclean: clean ephem-clean
+.PHONY: ephem ephem-clean distclean

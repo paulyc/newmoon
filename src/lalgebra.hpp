@@ -34,22 +34,22 @@
 
 // magic number copied from somewhere(??). Not eligible for copyright protection as a simple statement of fact.
 //
-// Since changed from __float128 to __float128 but comments still apply, __float128 gives you 48 more bits on x86!
+// Since changed from long double to long double but comments still apply, long double gives you 48 more bits on x86!
 //
-// this is really a binary256 but who tf knows how many bits you'll ever get in a __float128 anyway,
-// it gets truncated to 80 bits on some i386/amd64 platforms, which makes it something of a short __float128 since
+// this is really a binary256 but who tf knows how many bits you'll ever get in a long double anyway,
+// it gets truncated to 80 bits on some i386/amd64 platforms, which makes it something of a short long double since
 // the chip does all double FP in 80-bit anyway and rounds it back off to 64.
-// who knows, maybe some will whole-ass it with all 256, or make a long __float128 later.
-static constexpr __float128 MMM_INVERSE_PI_PI = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p-1q;
-static constexpr __float128 MMM_PI    = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p0q;
-static constexpr __float128 MMM_PI_2  = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p1q;
-static constexpr __float128 MMM_PI_4  = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p2q;
+// who knows, maybe some will whole-ass it with all 256, or make a long long double later.
+static constexpr long double MMM_INVERSE_PI_PI = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p-1q;
+static constexpr long double MMM_PI    = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p0q;
+static constexpr long double MMM_PI_2  = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p1q;
+static constexpr long double MMM_PI_4  = 0x3.243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89p2q;
 
-static constexpr __float128 MMM_2_PI  = 2 * MMM_PI;
-static constexpr __float128 MMM_4_PI  = 4 * MMM_PI;
+static constexpr long double MMM_2_PI  = 2 * MMM_PI;
+static constexpr long double MMM_4_PI  = 4 * MMM_PI;
 
 // T is not necessarily a primitive type!
-template <std::size_t N, typename T=__float128>
+template <std::size_t N, typename T=long double>
 struct Nvec
 {
     static constexpr std::size_t Dim = N;
@@ -169,16 +169,16 @@ struct Nvec<0, T>
     }
 };
 
-typedef Nvec<0, __float128> v0q_t;
-typedef Nvec<1, __float128> v1q_t;
-typedef Nvec<2, __float128> v2q_t;
-typedef Nvec<3, __float128> v3q_t;
+typedef Nvec<0, long double> v0q_t;
+typedef Nvec<1, long double> v1q_t;
+typedef Nvec<2, long double> v2q_t;
+typedef Nvec<3, long double> v3q_t;
 
 template <typename T>
 static constexpr Nvec<0, T> TheZeroVector = Nvec<0, T>();
 
 // NxM => 3x1 matrix = 3 cols 1 row , M=rows N=cols
-template <std::size_t N, std::size_t M, typename T=__float128>
+template <std::size_t N, std::size_t M, typename T=long double>
 struct NxMmatrix
 {
     typedef T TT;
@@ -270,7 +270,7 @@ struct NxMmatrix
     }
 };
 
-template <typename T=__float128>
+template <typename T=long double>
 struct vec2
 {
     typedef T TT;
@@ -282,9 +282,9 @@ struct vec2
 };
 
 typedef vec2<double> vec2d_t;
-typedef vec2<__float128> vec2q_t;
+typedef vec2<long double> vec2q_t;
 
-template <typename T=__float128>
+template <typename T=long double>
 struct vec3
 {
     typedef T TT;
@@ -301,9 +301,9 @@ struct vec3
     }
 };
 typedef vec3<double> vec3d_t;
-typedef vec3<__float128> vec3q_t;
+typedef vec3<long double> vec3q_t;
 
-template <typename T=__float128>
+template <typename T=long double>
 struct mat3x3
 {
     typedef T TT;
@@ -350,7 +350,7 @@ struct mat3x3
         };
     }
 
-    static constexpr mat3x3 R_0(__float128 α, __float128 θ_1, __float128 θ_2, __float128 θ_3) {
+    static constexpr mat3x3 R_0(long double α, long double θ_1, long double θ_2, long double θ_3) {
         //const mat3x3 r_1 = R_1(θ_1);
         //const mat3x3 r_2 = R_2(θ_2);
         //const mat3x3 r_3 = R_3(θ_3);
@@ -360,27 +360,27 @@ struct mat3x3
             {-θ_2,  θ_1,    α},
             };
         }
-    static constexpr mat3x3 R_1(__float128 θ) {
-        const __float128 sin_θ = sinl(θ);
-        const __float128 cos_θ = cosl(θ);
+    static constexpr mat3x3 R_1(long double θ) {
+        const long double sin_θ = sinl(θ);
+        const long double cos_θ = cosl(θ);
         return {
             {1.0q,   0.0q,  0.0q},
             {0.0q,  cos_θ, sin_θ},
             {0.0q, -sin_θ, cos_θ},
             };
         }
-    static constexpr mat3x3 R_2(__float128 θ) {
-        const __float128 sin_θ = sinl(θ);
-        const __float128 cos_θ = cosl(θ);
+    static constexpr mat3x3 R_2(long double θ) {
+        const long double sin_θ = sinl(θ);
+        const long double cos_θ = cosl(θ);
         return {
             {cos_θ, 0.0q, -sin_θ},
             { 0.0q, 1.0q,   0.0q},
             {sin_θ, 0.0q,  cos_θ},
             };
         }
-    static constexpr mat3x3 R_3(__float128 θ) {
-        const __float128 sin_θ = sinl(θ);
-        const __float128 cos_θ = cosl(θ);
+    static constexpr mat3x3 R_3(long double θ) {
+        const long double sin_θ = sinl(θ);
+        const long double cos_θ = cosl(θ);
         return {
             { cos_θ, sin_θ, 0.0q},
             {-sin_θ, cos_θ, 0.0q},
@@ -389,7 +389,7 @@ struct mat3x3
     }
 };
 
-typedef mat3x3<__float128> mat3x3q_t;
+typedef mat3x3<long double> mat3x3q_t;
 
 template <typename Vec_T>
 struct coordspace {};
@@ -456,11 +456,6 @@ struct spacexfrm2d : public spacexfrm<cartesian2dvec, cylindrical2dvec, mat3x3q_
 	}
 };
 
-cylindrical2dvec cylindrical2dvec::sum(const cylindrical2dvec &v) const
-{
-    return spacexfrm2d::cart2cyl(spacexfrm2d::cyl2cart(*this).sum(spacexfrm2d::cyl2cart(v)));
-}
-
 struct cartesian3dvec : public vec3q_t
 {
 	constexpr TT x() const { return this->raw[0]; }
@@ -519,12 +514,12 @@ struct spacexfrm3d : public spacexfrm<cartesian3dvec, spherical3dvec, mat3x3q_t>
         return spherical3dvec {{p.mag(), atan2l(sqrtl(p.x()*p.x()+p.y()*p.y()), p.z()), atan2l(p.y(), p.x())}};
         }
     static cartesian3dvec sph2cart(const spherical3dvec &p) {
-        const __float128 sin_θ = sinl(p.θ());
-        const __float128 cos_θ = cosl(p.θ());
-        const __float128 sin_ø = sinl(p.ø());
-        const __float128 cos_ø = cosl(p.ø());
+        const long double sin_θ = sinl(p.θ());
+        const long double cos_θ = cosl(p.θ());
+        const long double sin_ø = sinl(p.ø());
+        const long double cos_ø = cosl(p.ø());
         // https://www.web-formulas.com/Math_Formulas/Linear_Algebra_Transform_from_Cartesian_to_Spherical_Coordinate.aspx
-        const __float128 m[3][3] = {
+        const long double m[3][3] = {
             {sin_θ*cos_ø, cos_θ*cos_ø, -sin_ø,},
             {sin_θ*sin_ø, cos_θ*sin_ø,  cos_ø,},
             {      cos_θ,      -sin_θ,   0.0q,},
@@ -535,11 +530,11 @@ struct spacexfrm3d : public spacexfrm<cartesian3dvec, spherical3dvec, mat3x3q_t>
     }
 };
 
-    template <typename VecT, typename T=__float128>
-    struct funmat {};
+template <typename VecT, typename T=long double>
+struct funmat {};
 
-    template <typename VecT, typename T=__float128>
-    struct funmat3x3 : public funmat<VecT, T>
+template <typename VecT, typename T=long double>
+struct funmat3x3 : public funmat<VecT, T>
 {
     typedef T TT;
     typedef VecT VecTT;
