@@ -18,7 +18,7 @@
  * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA  02110-1335, USA.
  **/
 
-#include "astro.hpp"
+#include "tetrabiblos.hpp"
 
 int main(int argc, char *argv[]) {
     (void)argc;
@@ -30,9 +30,6 @@ int main(int argc, char *argv[]) {
     putenv(tzbuf);
     tzset();
 
-    jd_clock::time_point jd = jd_clock::now();
-    jd -= jd_clock::duration(28.0);
-
     timespec ts = {0,100000000};
     try {
         ephems.init("ephem/lnxm13000p17000.431");
@@ -40,6 +37,13 @@ int main(int argc, char *argv[]) {
         std::cerr << "Couldn't initialize ephems: " << ex.what() << std::endl;
         return 1;
     }
+
+
+    github::paulyc::tetrabiblos::Date today = github::paulyc::tetrabiblos::getDate(ephems, std::chrono::system_clock::now());
+    std::cout << today << std::endl;
+
+    jd_clock::time_point jd = jd_clock::now();
+    jd -= jd_clock::duration(28.0);
 
     // generate newmoons every ts seconds forever
     for (;;) {

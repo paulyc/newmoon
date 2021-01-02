@@ -97,10 +97,10 @@ struct jd_clock
     static constexpr long double leap_seconds_since_unix_epoch = 27.0l;
 
     static time_point now() noexcept {
-        return from_time_t(std::chrono::system_clock::now());
+        return from_system_clock(std::chrono::system_clock::now());
     }
 
-    static time_point from_time_t(const std::chrono::system_clock::time_point &t) {
+    static time_point from_system_clock(const std::chrono::system_clock::time_point &t) {
         return from_time_t(std::chrono::system_clock::to_time_t(t));
     }
 

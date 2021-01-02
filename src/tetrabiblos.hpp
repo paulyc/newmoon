@@ -21,4 +21,41 @@
 #ifndef PAULYC_TETRABIBLOS_HPP
 #define PAULYC_TETRABIBLOS_HPP
 
+#include "astro.hpp"
+
+namespace github {
+namespace paulyc {
+namespace tetrabiblos {
+
+enum Month {
+    NONE,
+    CAPRICORNUS = 1,
+    AQUARIUS,
+    PISCES,
+    ARIES,
+    TAURUS,
+    CANCER,
+    GEMINI,
+    VIRGO,
+    LEO,
+    LIBRA,
+    SCORPIO,
+    SAGITTARIUS,
+};
+
+struct Date {
+    bool valid;
+    int precessionalCycle;
+    int year;
+    Month month;
+    int dayOfMonth;
+};
+
+Date getDate(JPLEphems &ephems, const std::chrono::system_clock::time_point &tp);
+std::ostream& operator<<(std::ostream &os, const Date &d);
+
+}
+}
+}
+
 #endif /* PAULYC_TETRABIBLOS_HPP */
