@@ -50,11 +50,15 @@ void moonSunAngle(JPLEphems &ephems, const jd_clock::time_point &jd, result &res
     res.sunpos = ephems.get_state(res.jd_now, JPLEphems::Earth, JPLEphems::Sun).position();
     res.sunR = res.sunpos.mag();
     res.ns = ephems.get_nutations(res.jd_now);
-    res.α_moon = atanq(res.moonpos.y()/res.moonpos.x());// asinq(moonpos.y() / (moonR*cosq(δ_moon)));
-    res.δ_moon = atanq(res.moonpos.z()/(res.moonpos.y()*sinq(res.α_moon)));
+    res.δ_moon = asinq(res.moonpos.z());
+    res.α_moon = asinq(res.moonpos.y() / cosq(res.δ_moon));
+    //res.α_moon = atanq(res.moonpos.y()/res.moonpos.x());// asinq(moonpos.y() / (moonR*cosq(δ_moon)));
+    //res.δ_moon = atanq(res.moonpos.z()/(res.moonpos.y()*sinq(res.α_moon)));
 
-    res.α_sun = atanq(res.sunpos.y()/res.sunpos.x());//asinq(sunpos.y() / (moonR*cosq(δ_sun)));
-    res.δ_sun = atanq(res.sunpos.z()/(res.sunpos.y()*sinq(res.α_sun)));
+    res.δ_sun = asinq(res.sunpos.z());
+    res.α_sun = asinq(res.sunpos.y() / cosq(res.δ_sun));
+    //res.α_sun = atanq(res.sunpos.y()/res.sunpos.x());//asinq(sunpos.y() / (moonR*cosq(δ_sun)));
+    //res.δ_sun = atanq(res.sunpos.z()/(res.sunpos.y()*sinq(res.α_sun)));
 
     res.dα = res.α_moon - res.α_sun;
 
@@ -76,10 +80,12 @@ void moonSunAngle(JPLEphems &ephems, const jd_clock::time_point &jd, result &res
 }
 
 inline int signum(long double x) {
-    if (x >= 0.0q) {
+    if (x > 1e-9q) {
         return 1;
-    } else {
+    } else if (x < -1e-9q) {
         return -1;
+    } else {
+        return 0;
     }
 }
 std::chrono::system_clock::time_point minFinder(JPLEphems &ephems, jd_clock::time_point &jd) {
@@ -87,29 +93,73 @@ std::chrono::system_clock::time_point minFinder(JPLEphems &ephems, jd_clock::tim
     long double minangle = MMM_2_PI;
     result res;
     moonSunAngle(ephems, jd, res);
-    int sign_dα = signum(res.dα);
+    long double arg0 = res.arg, α_sun_0 = res.α_sun, d_α_sun0 = 0.0;
+    long double d_arg, d_α_sun, d2_α_sun;
+    int sign_d_arg = 0, sign_α_sun = 0, sign_d_α_sun = 0, sign_d2_α_sun = 2;
     for (int i = 0; i < 29*24*60; ++i) {
+        int flags = 0, sign;
         jd += jd_clock::duration(60.0l/jd_clock::SECONDS_PER_JDAY);
 
         moonSunAngle(ephems, jd, res);
-        int sign = signum(res.dα);
-        if (sign_dα != sign) {
+        d_arg = res.arg - arg0;
+        arg0 = res.arg;
+
+        sign = signum(res.α_sun);
+        if (sign_α_sun == 0) {
+            sign_α_sun = sign;
+        } else if (sign != 0 && sign_α_sun != sign) {
+            sign_α_sun = sign;
+            flags |= 4;
+        }
+        d_α_sun = res.α_sun - α_sun_0;
+        α_sun_0 = res.α_sun;
+        sign = signum(d_α_sun);
+        if (sign_d_α_sun == 0) {
+            sign_d_α_sun = sign;
+        } else if (sign != 0 && sign_d_α_sun != sign) {
+            sign_d_α_sun = sign;
+            flags |= 1;
+        }
+
+#if 0
+        // trying to find cross quarters but doesnt seem to work might need d3_alpha
+        d2_α_sun = d_α_sun - d_α_sun0;
+        d_α_sun0 = d_α_sun;
+        sign = signum(d2_α_sun);
+        if (sign_d2_α_sun == 2) {
+            sign_d2_α_sun = 0;
+        } else if (sign_d2_α_sun == 0) {
+            sign_d2_α_sun = sign;
+        } else if (sign != 0 && sign_d2_α_sun != sign) {
+            sign_d2_α_sun = sign;
+            flags |= 2;
+        }
+#endif
+
+        if (flags & 1) {
+            std::cout << jd_clock::to_system_clock(jd) << " zero crossing d_α_sun (solstice ref J2000) " << d_α_sun << " α_sun " << res.α_sun << std::endl;
+        }
+        if (flags & 2) {
+            std::cout << jd_clock::to_system_clock(jd) << " zero crossing d2_α_sun " << d2_α_sun << " d_α_sun " << d_α_sun << std::endl;
+        }
+        if (flags & 4) {
+            std::cout << jd_clock::to_system_clock(jd) << " zero crossing α_sun (equinox ref J2000) " << res.α_sun << std::endl;
+        }
+
+        sign = signum(d_arg);
+        if (sign_d_arg == 0) {
+            sign_d_arg = sign;
+        } else if (sign != 0 && sign_d_arg != sign) {
             //std::cout << res << std::endl;
-            if (sign_dα == 1) {
-                sign_dα = -1;
+            if (sign_d_arg == 1) {
+                sign_d_arg = -1;
             } else {
                 mintp = jd_clock::to_system_clock(jd);
+                //std::cout << jd_clock::to_system_clock(jd) << " α_sun " << res.α_sun << " d_α_sun " << d_α_sun << " d2_α_sun " << d2_α_sun << std::endl;
                 //std::cout << "minangle (newmoon) " << minangle << " at mintp " << mintp << std::endl;
                 return mintp;
             }
         }
-        /*const long double argabs = fabsq(res.arg);
-        if (argabs < minangle) {
-            minangle = argabs;
-            mintp = jd_clock::to_system_clock(jd);
-        } else if (argabs > MMM_PI/4.0q && minangle < MMM_PI/8.0q) {
-            break;
-        }*/
     }
     std::cout << " none found " << mintp << std::endl;
     return mintp;
