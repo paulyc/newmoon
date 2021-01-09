@@ -22,25 +22,47 @@
 
 typedef std::function<long double(JPLEphems&, const jd_clock::time_point&)> f_type;
 
-long double moonSunAngle(JPLEphems &ephems, const jd_clock::time_point &jd) {
-    const double jd_now = static_cast<double>(jd_clock::duration(jd.time_since_epoch()).count());
-    cartesian3dvec moonpos = ephems.get_state(jd_now, JPLEphems::EarthMoonBarycenter, JPLEphems::Moon).position();
-    const long double moonR = moonpos.mag();
-    cartesian3dvec sunpos = ephems.get_state(jd_now, JPLEphems::Earth, JPLEphems::Sun).position();
-    const long double sunR = sunpos.mag();
-    JPLEphems::NutationState ns = ephems.get_nutations(jd_now);
-    const long double α_moon = atanq(moonpos.y()/moonpos.x());// asinq(moonpos.y() / (moonR*cosq(δ_moon)));
-    const long double δ_moon = atanq(moonpos.z()/(moonpos.y()*sinq(α_moon)));
+struct result {
+    double jd_now;
+    cartesian3dvec moonpos;
+    long double moonR;
+    cartesian3dvec sunpos;
+    long double sunR ;
+    JPLEphems::NutationState ns;
+    long double α_moon;
+    long double δ_moon;
+    long double α_sun;
+    long double δ_sun;
+    long double dα;
+    long double Δψ;
+    long double Δɛ;
+    long double arg;
+};
+std::ostream &operator<<(std::ostream &os, const result &res) {
+    os << "arg " << res.arg << " α_moon " << res.α_moon << " α_sun " << res.α_sun << " dα " << res.dα;
+    return os;
+}
 
-    const long double α_sun = atanq(sunpos.y()/sunpos.x());//asinq(sunpos.y() / (moonR*cosq(δ_sun)));
-    const long double δ_sun = atanq(sunpos.z()/(sunpos.y()*sinq(α_sun)));
+void moonSunAngle(JPLEphems &ephems, const jd_clock::time_point &jd, result &res) {
+    res.jd_now = static_cast<double>(jd_clock::duration(jd.time_since_epoch()).count());
+    res.moonpos = ephems.get_state(res.jd_now, JPLEphems::EarthMoonBarycenter, JPLEphems::Moon).position();
+    res.moonR = res.moonpos.mag();
+    res.sunpos = ephems.get_state(res.jd_now, JPLEphems::Earth, JPLEphems::Sun).position();
+    res.sunR = res.sunpos.mag();
+    res.ns = ephems.get_nutations(res.jd_now);
+    res.α_moon = atanq(res.moonpos.y()/res.moonpos.x());// asinq(moonpos.y() / (moonR*cosq(δ_moon)));
+    res.δ_moon = atanq(res.moonpos.z()/(res.moonpos.y()*sinq(res.α_moon)));
 
-    const long double Δψ = ns.nutationInLongitude();
-    const long double Δɛ = ns.nutationInObliquity();
-    const long double arg = moonpos.angle(sunpos);
-#if 1
-    return arg;
-#else
+    res.α_sun = atanq(res.sunpos.y()/res.sunpos.x());//asinq(sunpos.y() / (moonR*cosq(δ_sun)));
+    res.δ_sun = atanq(res.sunpos.z()/(res.sunpos.y()*sinq(res.α_sun)));
+
+    res.dα = res.α_moon - res.α_sun;
+
+    res.Δψ = res.ns.nutationInLongitude();
+    res.Δɛ = res.ns.nutationInObliquity();
+    res.arg = res.moonpos.angle(res.sunpos);
+
+#if 0
     const long double ɛ_0 = 0.40904635907; //23.43663 deg in radians
     const long double ɛ = ɛ_0;// + Δɛ;
 
@@ -51,24 +73,45 @@ long double moonSunAngle(JPLEphems &ephems, const jd_clock::time_point &jd) {
     const long double arg = (α_moon - Δα_moon) - (α_sun - Δα_sun);
     JPLEphems::State ls = ephems.get_librations(jd_now);
 #endif
-};
+}
 
+inline int signum(long double x) {
+    if (x >= 0.0q) {
+        return 1;
+    } else {
+        return -1;
+    }
+}
 std::chrono::system_clock::time_point minFinder(JPLEphems &ephems, jd_clock::time_point &jd) {
     std::chrono::system_clock::time_point mintp = std::chrono::system_clock::now();
     long double minangle = MMM_2_PI;
+    result res;
+    moonSunAngle(ephems, jd, res);
+    int sign_dα = signum(res.dα);
     for (int i = 0; i < 29*24*60; ++i) {
         jd += jd_clock::duration(60.0l/jd_clock::SECONDS_PER_JDAY);
 
-        const long double arg = moonSunAngle(ephems, jd);
-        const long double argabs = fabsq(arg);
+        moonSunAngle(ephems, jd, res);
+        int sign = signum(res.dα);
+        if (sign_dα != sign) {
+            //std::cout << res << std::endl;
+            if (sign_dα == 1) {
+                sign_dα = -1;
+            } else {
+                mintp = jd_clock::to_system_clock(jd);
+                //std::cout << "minangle (newmoon) " << minangle << " at mintp " << mintp << std::endl;
+                return mintp;
+            }
+        }
+        /*const long double argabs = fabsq(res.arg);
         if (argabs < minangle) {
             minangle = argabs;
             mintp = jd_clock::to_system_clock(jd);
         } else if (argabs > MMM_PI/4.0q && minangle < MMM_PI/8.0q) {
             break;
-        }
+        }*/
     }
-    std::cout << "minangle (newmoon) " << minangle << " at mintp " << mintp << std::endl;
+    std::cout << " none found " << mintp << std::endl;
     return mintp;
 };
 
