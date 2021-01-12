@@ -37,6 +37,8 @@ struct result {
     long double Δψ;
     long double Δɛ;
     long double arg;
+    long double sphDistance;
+    spherical3dvec sphMoonpos, sphSunpos;
 };
 std::ostream &operator<<(std::ostream &os, const result &res) {
     os << "arg " << res.arg << " α_moon " << res.α_moon << " α_sun " << res.α_sun << " dα " << res.dα;
@@ -50,6 +52,9 @@ void moonSunAngle(JPLEphems &ephems, const jd_clock::time_point &jd, result &res
     res.sunpos = ephems.get_state(res.jd_now, JPLEphems::Earth, JPLEphems::Sun).position();
     res.sunR = res.sunpos.mag();
     res.ns = ephems.get_nutations(res.jd_now);
+    res.sphMoonpos = spacexfrm3d::cart2sph(res.moonpos);
+    res.sphSunpos = spacexfrm3d::cart2sph(res.sunpos);
+    res.sphDistance = res.sphMoonpos.normalDistance(res.sphSunpos);
     res.δ_moon = asinq(res.moonpos.z());
     res.α_moon = asinq(res.moonpos.y() / cosq(res.δ_moon));
     //res.α_moon = atanq(res.moonpos.y()/res.moonpos.x());// asinq(moonpos.y() / (moonR*cosq(δ_moon)));
@@ -93,16 +98,16 @@ std::chrono::system_clock::time_point minFinder(JPLEphems &ephems, jd_clock::tim
     long double minangle = MMM_2_PI;
     result res;
     moonSunAngle(ephems, jd, res);
-    long double arg0 = res.arg, α_sun_0 = res.α_sun, d_α_sun0 = 0.0;
-    long double d_arg, d_α_sun, d2_α_sun;
-    int sign_d_arg = 0, sign_α_sun = 0, sign_d_α_sun = 0, sign_d2_α_sun = 2;
+    long double arg0 = res.sphDistance, α_sun_0 = res.α_sun, d_α_sun0 = 0.0, d2_α_sun0 = 0.0;
+    long double d_arg, d_α_sun, d2_α_sun, d3_α_sun;
+    int sign_d_arg = 0, sign_α_sun = 0, sign_d_α_sun = 0, sign_d2_α_sun = 2, sign_d3_α_sun = 0;
     for (int i = 0; i < 29*24*60; ++i) {
         int flags = 0, sign;
         jd += jd_clock::duration(60.0l/jd_clock::SECONDS_PER_JDAY);
 
+        // WIP should really use sphAngle but have to get the math right
         moonSunAngle(ephems, jd, res);
-        d_arg = res.arg - arg0;
-        arg0 = res.arg;
+        //std::cout << jd_clock::to_system_clock(jd) << " sphDistance: " << res.sphDistance << std::endl;
 
         sign = signum(res.α_sun);
         if (sign_α_sun == 0) {
@@ -121,8 +126,8 @@ std::chrono::system_clock::time_point minFinder(JPLEphems &ephems, jd_clock::tim
             flags |= 1;
         }
 
-#if 0
         // trying to find cross quarters but doesnt seem to work might need d3_alpha
+        // dont think enough float128 has enough accuracy to calculate it like this
         d2_α_sun = d_α_sun - d_α_sun0;
         d_α_sun0 = d_α_sun;
         sign = signum(d2_α_sun);
@@ -134,29 +139,49 @@ std::chrono::system_clock::time_point minFinder(JPLEphems &ephems, jd_clock::tim
             sign_d2_α_sun = sign;
             flags |= 2;
         }
-#endif
+
+/*
+        if (sign_d2_α_sun != 0) {
+            d3_α_sun = d2_α_sun - d2_α_sun0;
+            d2_α_sun0 = d2_α_sun;
+            sign = signum(d3_α_sun);
+            if (sign_d3_α_sun == 2) {
+                sign_d3_α_sun = 0;
+            } else if (sign_d3_α_sun == 0) {
+                sign_d3_α_sun = sign;
+            } else if (sign != 0 && sign_d3_α_sun != sign) {
+                sign_d3_α_sun = sign;
+                flags |= 16;
+            }
+        }
+*/
+        d_arg = res.sphDistance - arg0;
+        arg0 = res.sphDistance;
+        sign = signum(d_arg);
+        if (sign_d_arg == 0) {
+            sign_d_arg = sign;
+        } else if (sign != 0 && sign_d_arg != sign) {
+            sign_d_arg = sign;
+            flags |= 8;
+        }
 
         if (flags & 1) {
             std::cout << jd_clock::to_system_clock(jd) << " zero crossing d_α_sun (solstice ref J2000) " << d_α_sun << " α_sun " << res.α_sun << std::endl;
         }
         if (flags & 2) {
-            std::cout << jd_clock::to_system_clock(jd) << " zero crossing d2_α_sun " << d2_α_sun << " d_α_sun " << d_α_sun << std::endl;
+            //std::cout << jd_clock::to_system_clock(jd) << " zero crossing d2_α_sun " << d2_α_sun << " d_α_sun " << d_α_sun << std::endl;
         }
         if (flags & 4) {
             std::cout << jd_clock::to_system_clock(jd) << " zero crossing α_sun (equinox ref J2000) " << res.α_sun << std::endl;
         }
-
-        sign = signum(d_arg);
-        if (sign_d_arg == 0) {
-            sign_d_arg = sign;
-        } else if (sign != 0 && sign_d_arg != sign) {
-            //std::cout << res << std::endl;
-            if (sign_d_arg == 1) {
-                sign_d_arg = -1;
-            } else {
-                mintp = jd_clock::to_system_clock(jd);
-                //std::cout << jd_clock::to_system_clock(jd) << " α_sun " << res.α_sun << " d_α_sun " << d_α_sun << " d2_α_sun " << d2_α_sun << std::endl;
-                //std::cout << "minangle (newmoon) " << minangle << " at mintp " << mintp << std::endl;
+        if (flags & 16) {
+            std::cout << jd_clock::to_system_clock(jd) << " zero crossing d3_α_sun " << d3_α_sun << " d2 " << d2_α_sun << std::endl;
+        }
+        if (flags & 8) {
+            mintp = jd_clock::to_system_clock(jd);
+            std::cout << mintp << " zero crossing d_arg " << (sign_d_arg > 0 ? " [new moon] " : " [full moon] ") << d_arg << " d " << res.sphDistance << std::endl;
+            std::cout << mintp << " α_sun " << res.α_sun << " d_α_sun " << d_α_sun << " d2_α_sun " << d2_α_sun << std::endl;
+            if (sign_d_arg > 0) {
                 return mintp;
             }
         }
@@ -164,11 +189,3 @@ std::chrono::system_clock::time_point minFinder(JPLEphems &ephems, jd_clock::tim
     std::cout << " none found " << mintp << std::endl;
     return mintp;
 };
-
-#if CALCULUS_WORKS
-auto minFinder2 = [](JPLEphems &ephems, jd_clock::time_point &jd, f_type moonSunAngle) -> long double {
-    double t_begin = jd.time_since_epoch().count();
-    double t_end = t_begin + 29 * 24 * 60 * 60;
-    return github::paulyc::min_x([&ephems, &moonSunAngle](long double t) -> long double {return moonSunAngle(ephems, jd_clock::from_unixtime(t));}, t_begin, t_end, 1.0).value();
-};
-#endif
