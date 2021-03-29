@@ -467,6 +467,14 @@ struct cartesian3dvec : public vec3q_t
 	TT phase() const {
 		return atanl(y()/x());
 	}
+    TT normalPhase() const {
+        const TT phase = this->phase();
+        if (phase < 0) {
+            return phase + MMM_2_PI;
+        } else {
+            return phase;
+        }
+    }
 	cartesian3dvec sum(const cartesian3dvec &v) const {
         return {{x()+v.x(), y()+v.y(), z()+v.z()}};
 	}
@@ -487,8 +495,13 @@ struct spherical3dvec : public vec3q_t
     constexpr TT mag() const {
         return r();
     }
-    //spherical3dvec sum(const spherical3dvec &v) const;
-    constexpr vec3q_t normalize() const {
+    spherical3dvec sum(const spherical3dvec &v) const {
+        return {this->r() + v.r(), this->θ() + v.θ(), this->ø() + v.ø()};
+    }
+    spherical3dvec diff(const spherical3dvec &v) const {
+        return {this->r() - v.r(), this->θ() - v.θ(), this->ø() - v.ø()};
+    }
+    constexpr spherical3dvec normalize() const {
         return {1.0q, θ(), ø()};
     }
     // not really such a thing in spherical coordinates, but there is
@@ -496,6 +509,22 @@ struct spherical3dvec : public vec3q_t
     // a Good Enough Approximation(tm) of a planet-star-type orbit
     constexpr TT phase() const {
         return θ();
+    }
+    constexpr TT normalPhase() const {
+        const TT phase = θ();
+        if (phase < 0) {
+            return phase + MMM_2_PI;
+        } else {
+            return phase;
+        }
+    }
+    spherical3dvec normalDiff(const spherical3dvec &v) const {
+        return this->normalize().diff(v.normalize());
+    }
+    TT normalDistance(const spherical3dvec &v) const {
+        const spherical3dvec normalThis = this->normalize();
+        const spherical3dvec normalV = v.normalize();
+        return sqrtl(2.0q - 2.0q * (sinl(this->θ()) * sinl(v.θ()) * cosl(this->ø() - v.ø()) + cosl(this->θ()) * cosl(v.θ())));
     }
     // ignoring ø for now keep it simple see above
     TT angle(const spherical3dvec &v) const {
@@ -512,7 +541,11 @@ struct spacexfrm3d : public spacexfrm<cartesian3dvec, spherical3dvec, mat3x3q_t>
 {
     static spherical3dvec cart2sph(const cartesian3dvec &p) {
         return spherical3dvec {{p.mag(), atan2l(sqrtl(p.x()*p.x()+p.y()*p.y()), p.z()), atan2l(p.y(), p.x())}};
-        }
+    }
+    static cylindrical2dvec cart2cyl(const cartesian3dvec &v) {
+        const spherical3dvec sph = cart2sph(v);
+        return cylindrical2dvec {{sph.θ(), sph.ø()}};
+    }
     static cartesian3dvec sph2cart(const spherical3dvec &p) {
         const long double sin_θ = sinl(p.θ());
         const long double cos_θ = cosl(p.θ());

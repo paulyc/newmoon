@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
     for (;;) {
         std::chrono::system_clock::time_point tp = minFinder(ephems, jd);
         std::cout << "\"new moon (ISO8601)\"" << '"' << tp << '"' << std::endl;
-        jd += jd_clock::duration(25.0);
+        jd += jd_clock::duration(1.0);
         nanosleep(&ts, nullptr);
     }
 
