@@ -1,15 +1,6 @@
-_: all
+_: build
 
-all: build
-
-submodules:
-	git submodule update --init
-.PHONY: submodules
-
-googletest/lib/libgtest.a: submodules
-	cd googletest && cmake . && make -j
-
-googletest: googletest/lib/libgtest.a
+all: ephem build
 
 cmake: CMakeLists.txt
 	mkdir -p build
@@ -33,13 +24,6 @@ test: build/test/test
 clean:
 	rm -rf build
 .PHONY: clean
-
-buildtest: build test
-.PHONY: buildtest
-
-cleanconf:
-	rm -rf build
-.PHONY: cleanconf
 
 ephem:
 	make -C ephem
